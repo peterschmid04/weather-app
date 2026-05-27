@@ -1,0 +1,39 @@
+import React from 'react';
+import "./Highlights.css";
+import iconSunrise from "../images/icons/sun/sunrise-svgrepo-com.svg";
+import iconSunset from "../images/icons/sun/sunset-svgrepo-com.svg";
+import UVIndex from './UVIndex.js'; // Import the UVIndex component
+
+export default function Highlights({ highlights }) {
+    // Render the highlights section with today's weather highlights
+    return (
+        <div className="highlights-container">
+            <h2>Today's Highlights</h2>
+            <div className="highlights">
+                {/* Map through the highlights array and render each highlight */}
+                {highlights && highlights.map((item, index) => (
+                    <div key={index} className="highlight-box">
+                        <h3>{item.title}</h3>
+
+                        {/* Render sunrise and sunset times if the title matches */}
+                        {item.title === "Sunrise & Sunset" ? (
+                            <div className="sunrise-sunset">
+                                <p><img src={iconSunrise} alt="Sunrise" /> {item.up}</p>
+                                <p><img src={iconSunset} alt="Sunset" /> {item.down}</p>
+                            </div>
+                        ) : item.title === "UV Index" ? (
+                            // Render the UVIndex component for UV Index highlight
+                            <UVIndex value={item.value} />
+                        ) : (
+                            // Render generic highlight information
+                            <div>
+                                <p><strong>{item.value}</strong> {item.unit}</p>
+                                <p>{item.status}</p>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

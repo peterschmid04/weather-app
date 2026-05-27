@@ -1,0 +1,63 @@
+.sidebar {
+  padding: 20px;
+  grid-column: 1;
+  grid-row: 1 / 5;
+  border-top-left-radius: 30px;  /* Only round top left corner */
+  border-bottom-left-radius: 30px;  /* Only round bottom left corner */
+  background-color: rgba(255, 255, 255, 0.703); /* Semi-transparent background */
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  justify-content: center; /* Center children vertically */
+  align-items: center; /* Center children horizontally */
+}
+  
+.cityInput {
+  padding: 10px;
+  margin: 30px;
+  font-size: 1rem;
+  border: none;
+  color: hsl(0, 0%, 0%);
+  border-radius: 10px; /* Rounded input corners */
+  width: 300px; /* Fixed input width */
+}
+  
+.cityInput:focus {
+  outline: none; /* Remove default focus outline */
+}
+  
+.sidebar .image {
+  padding-top: 30px;
+  width: 80%;
+  height: 80%;
+  object-fit: fill; /* Stretch image to fill container */
+}
+  
+.temp {
+  padding-top: 50px;
+  padding-left: 30px;
+  font-size: 4rem; /* Large temperature text */
+}
+  
+.date {
+  display: flex;
+  padding-top: 20px;
+  padding-left: 25px;
+  font-size: 1.5rem;
+}
+  
+.date .time {
+  color: hsl(0, 0%, 33%);
+  margin-left: 50px; /* Space between date and time */
+}
+  
+.description {
+  display: flex;
+  padding-top: 15px;
+  padding-left: 25px;
+  font-size: 1.5rem;
+}
+  
+img {
+  width: 50px;
+  height: 50px; /* Consistent image size */
+}

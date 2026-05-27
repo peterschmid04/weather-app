@@ -1,0 +1,41 @@
+.half-mask-container {
+    width: 260px;  /* Size of the box */
+    height: 130px; /* Maximum height of the semicircle */
+    overflow: hidden; /* Prevents content from overflowing */
+    display: flex;
+    position: relative;
+}
+
+.circle1 {
+    border-radius: 100%; /* Makes the element a circle */
+    height: 260px;
+    width: 260px;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    overflow: hidden;
+    /* Creates a semicircular gradient for UV index visualization */
+    background: conic-gradient(from -90deg, #ffee37 0deg, #ff8c00 90deg, #b40101 180deg);
+}
+
+.circle2 {
+    border-radius: 100%; /* Makes the element a circle */
+    height: 220px;
+    width: 190px;
+    background: #f6f6f6; /* Inner circle color */
+    overflow: hidden;
+}
+
+.uv-container {
+    position: relative; /* Needed for absolute positioning of .uv-value */
+}
+
+.uv-value {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 3rem;
+    display: flex;
+    justify-content: center; /* Centers the UV value text horizontally */
+}
