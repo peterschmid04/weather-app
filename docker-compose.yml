@@ -1,4 +1,21 @@
 services:
+  db:
+    image: postgres:latest
+    container_name: weather-app-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-weather_app}
+      POSTGRES_USER: ${POSTGRES_USER:-weather_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weather_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - weather_app_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   backend:
     image: mcr.microsoft.com/dotnet/sdk:9.0
     container_name: weather-app-api
@@ -7,6 +24,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:5122
+      ConnectionStrings__WeatherDatabase: Host=db;Port=5432;Database=${POSTGRES_DB:-weather_app};Username=${POSTGRES_USER:-weather_app};Password=${POSTGRES_PASSWORD:-weather_dev_password}
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
     ports:
       - "5122:5122"
@@ -15,6 +33,9 @@ services:
       - weather_app_nuget:/root/.nuget/packages
       - weather_app_backend_bin:/workspace/weatherAPIOAuth/weatherAPI/bin
       - weather_app_backend_obj:/workspace/weatherAPIOAuth/weatherAPI/obj
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     image: node:24
@@ -33,9 +54,11 @@ services:
       - .:/workspace
       - weather_app_frontend_node_modules:/workspace/weather-app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
 volumes:
+  weather_app_postgres_data:
   weather_app_nuget:
   weather_app_backend_bin:
   weather_app_backend_obj:
