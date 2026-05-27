@@ -1,15 +1,17 @@
 .half-mask-container {
-    width: 260px;  /* Size of the box */
-    height: 130px; /* Maximum height of the semicircle */
-    overflow: hidden; /* Prevents content from overflowing */
+    width: min(100%, 220px);
+    aspect-ratio: 2 / 1;
+    overflow: hidden;
     display: flex;
     position: relative;
+    margin: 0 auto;
 }
 
 .circle1 {
     border-radius: 100%; /* Makes the element a circle */
-    height: 260px;
-    width: 260px;
+    height: 200%;
+    width: 100%;
+    aspect-ratio: 1;
     display: flex;
     justify-content: center;
     align-items: end;
@@ -20,14 +22,17 @@
 
 .circle2 {
     border-radius: 100%; /* Makes the element a circle */
-    height: 220px;
-    width: 190px;
-    background: #f6f6f6; /* Inner circle color */
+    height: 82%;
+    width: 76%;
+    background: var(--panel);
     overflow: hidden;
 }
 
 .uv-container {
-    position: relative; /* Needed for absolute positioning of .uv-value */
+    position: relative;
+    width: 100%;
+    max-width: 240px;
+    overflow: hidden;
 }
 
 .uv-value {
@@ -35,7 +40,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    font-size: 3rem;
+    z-index: 1;
+    font-size: clamp(2rem, 3vw, 3rem);
     display: flex;
     justify-content: center; /* Centers the UV value text horizontally */
+    color: var(--text);
 }

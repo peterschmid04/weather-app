@@ -1,6 +1,6 @@
 .highlights-container {
   grid-column: 2 / 5; /* Occupies columns 2 to 4 */
-  grid-row: 3 / 5; /* Occupies rows 3 and 4 */
+  grid-row: 3;
   /* Center container and add spacing */
   padding: 20px;
   display: flex;
@@ -8,8 +8,9 @@
   justify-content: space-around;
   flex-direction: column;
   align-items: center;
-  min-height: 460px;
+  min-height: 0;
   height: auto;
+  min-width: 0;
     
   h2 {
     align-self: flex-start;
@@ -20,16 +21,17 @@
 /* Highlights grid layout */
 .highlights {
   grid-column: 2 / 5; /* Occupies columns 2 to 4 */
-  grid-row: 3 / 5; /* Occupies rows 3 and 4 */
+  grid-row: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
   display: grid; /* Overwrites previous flex, only grid is used */
   grid-template-columns: repeat(3, 1fr); /* 3 columns of equal width */
   grid-template-rows: repeat(2, 1fr); /* 2 rows of equal height */
-  gap: 20px; 
+  gap: clamp(12px, 1.2vw, 20px);
   width: 100%;
-  min-height: 410px;
+  min-height: 0;
+  min-width: 0;
 }
 
 .highlight-box {
@@ -41,6 +43,9 @@
   text-align: left;
   align-content: center;
   color: var(--text);
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
 
   h3 {
     font-size: 1.2rem;
