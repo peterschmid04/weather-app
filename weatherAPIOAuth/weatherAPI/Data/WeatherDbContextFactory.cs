@@ -8,7 +8,7 @@ public class WeatherDbContextFactory : IDesignTimeDbContextFactory<WeatherDbCont
     public WeatherDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__WeatherDatabase")
-            ?? "Host=localhost;Port=5432;Database=weather_app;Username=weather_app;Password=weather_dev_password";
+            ?? "Host=localhost;Port=5432;Database=weather_app;Username=weather_app;Password=change-me";
 
         var optionsBuilder = new DbContextOptionsBuilder<WeatherDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
