@@ -1,0 +1,122 @@
+.stations {
+  grid-column: 2 / 5;
+  grid-row: 4;
+  padding: 14px 24px 18px;
+  overflow: auto;
+  background: #f8fafc;
+  border-top: 2px solid #d1d5db;
+  white-space: normal;
+}
+
+.stations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.stations-header h2 {
+  font-size: 1.4rem;
+}
+
+.stations-header span {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.station-form,
+.measurement-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.station-form {
+  margin-bottom: 12px;
+}
+
+.station-form input,
+.measurement-form input,
+.station-form button,
+.measurement-form button,
+.station-list button {
+  min-height: 34px;
+  border: 1px solid #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.station-form button,
+.measurement-form button {
+  cursor: pointer;
+  font-weight: 700;
+  background: #e2e8f0;
+}
+
+.station-content {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1.2fr;
+  gap: 12px;
+}
+
+.station-list {
+  display: grid;
+  gap: 8px;
+  max-height: 190px;
+  overflow: auto;
+}
+
+.station-list button {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.station-list button.active {
+  border-color: #111827;
+  background: #dbeafe;
+}
+
+.station-list span,
+.station-list small,
+.measurement-list span,
+.measurement-list small {
+  display: block;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.measurement-form h3 {
+  grid-column: 1 / -1;
+  font-size: 1rem;
+}
+
+.measurement-list {
+  display: grid;
+  gap: 8px;
+  max-height: 190px;
+  overflow: auto;
+}
+
+.measurement-list article {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 8px;
+}
+
+@media (max-width: 900px) {
+  .stations {
+    grid-column: 1 / 5;
+  }
+
+  .station-form,
+  .measurement-form,
+  .station-content {
+    grid-template-columns: 1fr;
+  }
+}
