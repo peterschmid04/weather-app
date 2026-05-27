@@ -33,13 +33,22 @@ macOS or Linux:
 sh ./start-weather-app.sh
 ```
 
-The scripts ask for the required values, write `.env`, and then run:
+If `.env` already exists, the scripts immediately run Docker Compose and do not ask for values again.
+
+If `.env` does not exist yet, the scripts ask only for:
+
+- Auth0 Domain
+- Auth0 Audience, default `https://weather-api`
+- Auth0 ClientId
+- OpenWeatherMap API key
+
+PostgreSQL, pgAdmin, Auth0 scope, and Auth0 connection names are filled automatically. The scripts write `.env`, then run:
 
 ```sh
 docker compose up -d
 ```
 
-If `.env` already exists, the scripts ask before overwriting it.
+The generated PostgreSQL password is stored in `.env`. pgAdmin uses the same generated password by default.
 
 ## Manual Start
 
@@ -144,6 +153,8 @@ Docker Compose starts:
 - `pgadmin`: official `dpage/pgadmin4:latest`
 
 Database files are stored in Docker volumes, not in the local OneDrive project folder. Backend `bin`, backend `obj`, test `bin`, test `obj`, NuGet packages, and frontend `node_modules` also use Docker volumes.
+
+You do not need to create the database manually. `POSTGRES_DB` defaults to `weather_app`, and the official Postgres container creates that database automatically on the first start when the Docker volume is empty. Keeping the default name is easiest because backend and pgAdmin are already configured for it.
 
 Open pgAdmin at http://localhost:5050 and log in with:
 

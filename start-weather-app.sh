@@ -70,42 +70,34 @@ assert_env_value() {
 }
 
 if [ -f ".env" ]; then
-  overwrite="$(prompt_value ".env already exists. Overwrite it? Type yes to overwrite" "no" "false")"
-  if [ "$overwrite" != "yes" ]; then
-    echo "Keeping existing .env and starting Docker Compose."
-    docker compose up -d
-    exit $?
-  fi
+  echo ".env found. Starting Docker Compose without asking for values."
+  docker compose up -d
+  exit $?
 fi
 
 echo ""
-echo "Enter local configuration values. Real secrets are written only to .env."
+echo "No .env found. Enter the required Auth0 and OpenWeatherMap values."
+echo "PostgreSQL, pgAdmin and Auth0 connection names are filled automatically."
 echo "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 echo ""
 
-POSTGRES_DB="$(prompt_value "POSTGRES_DB" "weather_app")"
-POSTGRES_USER="$(prompt_value "POSTGRES_USER" "weather_app")"
-POSTGRES_PASSWORD="$(prompt_secret "POSTGRES_PASSWORD (blank = generate local password)" "false")"
-if [ -z "$POSTGRES_PASSWORD" ]; then
-  POSTGRES_PASSWORD="$(generate_password)"
-fi
+POSTGRES_DB="weather_app"
+POSTGRES_USER="weather_app"
+POSTGRES_PASSWORD="$(generate_password)"
 
-PGADMIN_DEFAULT_EMAIL="$(prompt_value "PGADMIN_DEFAULT_EMAIL" "admin@example.com")"
-PGADMIN_DEFAULT_PASSWORD="$(prompt_secret "PGADMIN_DEFAULT_PASSWORD (blank = use POSTGRES_PASSWORD)" "false")"
-if [ -z "$PGADMIN_DEFAULT_PASSWORD" ]; then
-  PGADMIN_DEFAULT_PASSWORD="$POSTGRES_PASSWORD"
-fi
+PGADMIN_DEFAULT_EMAIL="admin@example.com"
+PGADMIN_DEFAULT_PASSWORD="$POSTGRES_PASSWORD"
 
 AUTH0_DOMAIN="$(prompt_value "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com" "" "true")"
 AUTH0_AUDIENCE="$(prompt_value "AUTH0_AUDIENCE" "https://weather-api")"
 AUTH0_CLIENT_ID="$(prompt_value "AUTH0_CLIENT_ID" "" "true")"
-AUTH0_SCOPE="$(prompt_value "AUTH0_SCOPE" "openid profile email read:weather")"
+AUTH0_SCOPE="openid profile email read:weather"
 
-AUTH0_CONNECTION_DATABASE="$(prompt_value "AUTH0_CONNECTION_DATABASE" "Username-Password-Authentication")"
-AUTH0_CONNECTION_GOOGLE="$(prompt_value "AUTH0_CONNECTION_GOOGLE" "google-oauth2")"
-AUTH0_CONNECTION_APPLE="$(prompt_value "AUTH0_CONNECTION_APPLE" "apple")"
-AUTH0_CONNECTION_FACEBOOK="$(prompt_value "AUTH0_CONNECTION_FACEBOOK" "facebook")"
-AUTH0_CONNECTION_GITHUB="$(prompt_value "AUTH0_CONNECTION_GITHUB" "github")"
+AUTH0_CONNECTION_DATABASE="Username-Password-Authentication"
+AUTH0_CONNECTION_GOOGLE="google-oauth2"
+AUTH0_CONNECTION_APPLE="apple"
+AUTH0_CONNECTION_FACEBOOK="facebook"
+AUTH0_CONNECTION_GITHUB="github"
 
 OPENWEATHERMAP_API_KEY="$(prompt_secret "OPENWEATHERMAP_API_KEY" "true")"
 

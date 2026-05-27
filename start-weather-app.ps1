@@ -73,42 +73,34 @@ function Assert-EnvValue {
 }
 
 if (Test-Path -LiteralPath ".env") {
-    $overwrite = Read-PlainValue ".env already exists. Overwrite it? Type yes to overwrite" "no" $false
-    if ($overwrite -ne "yes") {
-        Write-Host "Keeping existing .env and starting Docker Compose."
-        docker compose up -d
-        exit $LASTEXITCODE
-    }
+    Write-Host ".env found. Starting Docker Compose without asking for values."
+    docker compose up -d
+    exit $LASTEXITCODE
 }
 
 Write-Host ""
-Write-Host "Enter local configuration values. Real secrets are written only to .env."
+Write-Host "No .env found. Enter the required Auth0 and OpenWeatherMap values."
+Write-Host "PostgreSQL, pgAdmin and Auth0 connection names are filled automatically."
 Write-Host "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 Write-Host ""
 
-$postgresDb = Read-PlainValue "POSTGRES_DB" "weather_app"
-$postgresUser = Read-PlainValue "POSTGRES_USER" "weather_app"
-$postgresPassword = Read-SecretValue "POSTGRES_PASSWORD (blank = generate local password)" $false
-if ([string]::IsNullOrWhiteSpace($postgresPassword)) {
-    $postgresPassword = New-SafePassword
-}
+$postgresDb = "weather_app"
+$postgresUser = "weather_app"
+$postgresPassword = New-SafePassword
 
-$pgadminEmail = Read-PlainValue "PGADMIN_DEFAULT_EMAIL" "admin@example.com"
-$pgadminPassword = Read-SecretValue "PGADMIN_DEFAULT_PASSWORD (blank = use POSTGRES_PASSWORD)" $false
-if ([string]::IsNullOrWhiteSpace($pgadminPassword)) {
-    $pgadminPassword = $postgresPassword
-}
+$pgadminEmail = "admin@example.com"
+$pgadminPassword = $postgresPassword
 
 $auth0Domain = Read-PlainValue "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com"
 $auth0Audience = Read-PlainValue "AUTH0_AUDIENCE" "https://weather-api"
 $auth0ClientId = Read-PlainValue "AUTH0_CLIENT_ID"
-$auth0Scope = Read-PlainValue "AUTH0_SCOPE" "openid profile email read:weather"
+$auth0Scope = "openid profile email read:weather"
 
-$auth0Database = Read-PlainValue "AUTH0_CONNECTION_DATABASE" "Username-Password-Authentication"
-$auth0Google = Read-PlainValue "AUTH0_CONNECTION_GOOGLE" "google-oauth2"
-$auth0Apple = Read-PlainValue "AUTH0_CONNECTION_APPLE" "apple"
-$auth0Facebook = Read-PlainValue "AUTH0_CONNECTION_FACEBOOK" "facebook"
-$auth0GitHub = Read-PlainValue "AUTH0_CONNECTION_GITHUB" "github"
+$auth0Database = "Username-Password-Authentication"
+$auth0Google = "google-oauth2"
+$auth0Apple = "apple"
+$auth0Facebook = "facebook"
+$auth0GitHub = "github"
 
 $openWeatherKey = Read-SecretValue "OPENWEATHERMAP_API_KEY"
 
