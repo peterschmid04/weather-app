@@ -1,14 +1,16 @@
 .sidebar {
   padding: 20px;
   grid-column: 1;
-  grid-row: 1 / 5;
-  border-top-left-radius: 30px;  /* Only round top left corner */
-  border-bottom-left-radius: 30px;  /* Only round bottom left corner */
+  grid-row: 1 / 6;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
   background-color: rgba(255, 255, 255, 0.703); /* Semi-transparent background */
   display: flex;
   flex-direction: column; /* Stack children vertically */
-  justify-content: center; /* Center children vertically */
+  justify-content: flex-start;
   align-items: center; /* Center children horizontally */
+  min-height: 100vh;
+  white-space: normal;
 }
   
 .cityInput {
@@ -18,7 +20,7 @@
   border: none;
   color: hsl(0, 0%, 0%);
   border-radius: 10px; /* Rounded input corners */
-  width: 300px; /* Fixed input width */
+  width: min(300px, 100%);
 }
   
 .cityInput:focus {
@@ -36,6 +38,7 @@
   padding-top: 50px;
   padding-left: 30px;
   font-size: 4rem; /* Large temperature text */
+  white-space: normal;
 }
   
 .date {
@@ -43,6 +46,7 @@
   padding-top: 20px;
   padding-left: 25px;
   font-size: 1.5rem;
+  white-space: normal;
 }
   
 .date .time {

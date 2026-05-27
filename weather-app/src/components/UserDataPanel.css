@@ -1,0 +1,141 @@
+.user-data {
+  grid-column: 2 / 5;
+  grid-row: 4;
+  padding: 18px 24px;
+  background: var(--surface-strong);
+  border-top: 2px solid var(--line);
+  color: var(--text);
+  white-space: normal;
+}
+
+.user-data-header,
+.panel-title,
+.row-actions,
+.theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-data-header {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.user-data-header h2,
+.panel-title h3 {
+  font-size: 1.15rem;
+}
+
+.user-data-header p,
+.user-data-header span,
+.empty,
+.saved-list small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.theme-picker {
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.theme-picker button,
+.panel-title button,
+.favorite-form button,
+.saved-list button {
+  border: 1px solid var(--line);
+  background: var(--control);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.theme-picker button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.user-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.saved-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.panel-title {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.favorite-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.favorite-form input {
+  border: 1px solid var(--line);
+  background: var(--input);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.saved-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.saved-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.saved-list article > small {
+  grid-column: 1;
+}
+
+.saved-list .quiet,
+.row-actions .quiet {
+  background: transparent;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+@media (max-width: 900px) {
+  .user-data {
+    grid-column: 1 / 5;
+  }
+
+  .user-data-grid,
+  .favorite-form,
+  .saved-list article {
+    grid-template-columns: 1fr;
+  }
+}

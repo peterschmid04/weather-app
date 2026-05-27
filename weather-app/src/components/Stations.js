@@ -23,6 +23,7 @@ const emptyMeasurement = {
 export default function Stations({ authFetchJson }) {
   const [stations, setStations] = useState([]);
   const [selectedStationId, setSelectedStationId] = useState("");
+  const [editingStationId, setEditingStationId] = useState("");
   const [stationForm, setStationForm] = useState(emptyStation);
   const [measurementForm, setMeasurementForm] = useState(emptyMeasurement);
   const [measurements, setMeasurements] = useState([]);
@@ -38,6 +39,9 @@ export default function Stations({ authFetchJson }) {
     setStations(data);
     if (!selectedStationId && data.length > 0) {
       setSelectedStationId(data[0].id);
+    }
+    if (selectedStationId && !data.some((station) => station.id === selectedStationId)) {
+      setSelectedStationId(data[0]?.id || "");
     }
   }, [authFetchJson, selectedStationId]);
 
@@ -69,21 +73,70 @@ export default function Stations({ authFetchJson }) {
 
   const numberOrNull = (value) => (value === "" ? null : Number(value));
 
-  const createStation = async (event) => {
+  const resetStationForm = () => {
+    setStationForm(emptyStation);
+    setEditingStationId("");
+  };
+
+  const saveStation = async (event) => {
     event.preventDefault();
     setMessage("");
-    const created = await authFetchJson("http://localhost:5122/stations/", {
-      method: "POST",
-      body: JSON.stringify({
-        ...stationForm,
-        latitude: numberOrNull(stationForm.latitude),
-        longitude: numberOrNull(stationForm.longitude),
-      }),
+    if (!stationForm.name.trim()) {
+      setMessage("Bitte einen Stationsnamen eintragen.");
+      return;
+    }
+
+    const payload = {
+      ...stationForm,
+      cityName: stationForm.cityName.trim() || null,
+      countryCode: stationForm.countryCode.trim() || null,
+      latitude: numberOrNull(stationForm.latitude),
+      longitude: numberOrNull(stationForm.longitude),
+    };
+
+    const url = editingStationId
+      ? `http://localhost:5122/stations/${editingStationId}`
+      : "http://localhost:5122/stations/";
+
+    try {
+      const saved = await authFetchJson(url, {
+        method: editingStationId ? "PUT" : "POST",
+        body: JSON.stringify(payload),
+      });
+      resetStationForm();
+      setSelectedStationId(saved.id);
+      await loadStations();
+      setMessage(editingStationId ? "Station aktualisiert." : "Station gespeichert.");
+    } catch (error) {
+      setMessage(error.message || "Station konnte nicht gespeichert werden.");
+    }
+  };
+
+  const editStation = (station) => {
+    setEditingStationId(station.id);
+    setStationForm({
+      name: station.name,
+      cityName: station.cityName,
+      countryCode: station.countryCode,
+      description: station.description || "",
+      latitude: station.latitude ?? "",
+      longitude: station.longitude ?? "",
     });
-    setStationForm(emptyStation);
-    setSelectedStationId(created.id);
-    await loadStations();
-    setMessage("Station gespeichert.");
+  };
+
+  const deleteStation = async (stationId) => {
+    try {
+      await authFetchJson(`http://localhost:5122/stations/${stationId}`, { method: "DELETE" });
+      if (selectedStationId === stationId) {
+        setSelectedStationId("");
+        setMeasurements([]);
+      }
+      resetStationForm();
+      await loadStations();
+      setMessage("Station geloescht.");
+    } catch (error) {
+      setMessage(error.message || "Station konnte nicht geloescht werden.");
+    }
   };
 
   const createMeasurement = async (event) => {
@@ -92,55 +145,66 @@ export default function Stations({ authFetchJson }) {
       setMessage("Bitte zuerst eine Station auswaehlen.");
       return;
     }
+
     setMessage("");
-    await authFetchJson(`http://localhost:5122/stations/${selectedStationId}/measurements`, {
-      method: "POST",
-      body: JSON.stringify({
-        temperatureC: numberOrNull(measurementForm.temperatureC),
-        humidityPercent: numberOrNull(measurementForm.humidityPercent),
-        pressureHpa: numberOrNull(measurementForm.pressureHpa),
-        windSpeedKmh: numberOrNull(measurementForm.windSpeedKmh),
-        windDirectionDegrees:
-          measurementForm.windDirectionDegrees === "" ? null : Number.parseInt(measurementForm.windDirectionDegrees, 10),
-        rainfallMm: numberOrNull(measurementForm.rainfallMm),
-        notes: measurementForm.notes,
-      }),
-    });
-    setMeasurementForm(emptyMeasurement);
-    await Promise.all([loadStations(), loadMeasurements(selectedStationId)]);
-    setMessage("Messwert gespeichert.");
+    try {
+      await authFetchJson(`http://localhost:5122/stations/${selectedStationId}/measurements`, {
+        method: "POST",
+        body: JSON.stringify({
+          temperatureC: numberOrNull(measurementForm.temperatureC),
+          humidityPercent: numberOrNull(measurementForm.humidityPercent),
+          pressureHpa: numberOrNull(measurementForm.pressureHpa),
+          windSpeedKmh: numberOrNull(measurementForm.windSpeedKmh),
+          windDirectionDegrees:
+            measurementForm.windDirectionDegrees === "" ? null : Number.parseInt(measurementForm.windDirectionDegrees, 10),
+          rainfallMm: numberOrNull(measurementForm.rainfallMm),
+          notes: measurementForm.notes,
+        }),
+      });
+      setMeasurementForm(emptyMeasurement);
+      await Promise.all([loadStations(), loadMeasurements(selectedStationId)]);
+      setMessage("Messwert gespeichert.");
+    } catch (error) {
+      setMessage(error.message || "Messwert konnte nicht gespeichert werden.");
+    }
   };
 
   return (
     <section className="stations">
       <div className="stations-header">
-        <h2>Eigene Orte</h2>
+        <div>
+          <h2>Eigene Orte und Wetterstationen</h2>
+          <p>Nur der Stationsname ist Pflicht. Ort und Land koennen spaeter angepasst werden.</p>
+        </div>
         {message && <span>{message}</span>}
       </div>
 
-      <form className="station-form" onSubmit={createStation}>
+      <form className="station-form" onSubmit={saveStation}>
         <input value={stationForm.name} onChange={(event) => updateStationForm("name", event.target.value)} placeholder="Stationsname" required />
-        <input value={stationForm.cityName} onChange={(event) => updateStationForm("cityName", event.target.value)} placeholder="Ort" required />
-        <input value={stationForm.countryCode} onChange={(event) => updateStationForm("countryCode", event.target.value)} placeholder="DE" maxLength="2" required />
-        <input value={stationForm.latitude} onChange={(event) => updateStationForm("latitude", event.target.value)} placeholder="Breitengrad" type="number" step="0.000001" />
-        <input value={stationForm.longitude} onChange={(event) => updateStationForm("longitude", event.target.value)} placeholder="Laengengrad" type="number" step="0.000001" />
-        <input value={stationForm.description} onChange={(event) => updateStationForm("description", event.target.value)} placeholder="Beschreibung" />
-        <button type="submit">Ort speichern</button>
+        <input value={stationForm.cityName} onChange={(event) => updateStationForm("cityName", event.target.value)} placeholder="Ort optional" />
+        <input value={stationForm.countryCode} onChange={(event) => updateStationForm("countryCode", event.target.value.toUpperCase())} placeholder="DE" maxLength="2" />
+        <input value={stationForm.latitude} onChange={(event) => updateStationForm("latitude", event.target.value)} placeholder="Breitengrad optional" type="number" step="0.000001" />
+        <input value={stationForm.longitude} onChange={(event) => updateStationForm("longitude", event.target.value)} placeholder="Laengengrad optional" type="number" step="0.000001" />
+        <input value={stationForm.description} onChange={(event) => updateStationForm("description", event.target.value)} placeholder="Beschreibung optional" />
+        <button type="submit">{editingStationId ? "Station aendern" : "Station speichern"}</button>
+        {editingStationId && <button type="button" onClick={resetStationForm}>Abbrechen</button>}
       </form>
 
       <div className="station-content">
         <div className="station-list">
+          {stations.length === 0 && <p className="empty">Noch keine eigene Wetterstation gespeichert.</p>}
           {stations.map((station) => (
-            <button
-              key={station.id}
-              type="button"
-              className={station.id === selectedStationId ? "active" : ""}
-              onClick={() => setSelectedStationId(station.id)}
-            >
-              <strong>{station.name}</strong>
-              <span>{station.cityName}, {station.countryCode}</span>
-              {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} C</small>}
-            </button>
+            <article key={station.id} className={station.id === selectedStationId ? "active" : ""}>
+              <button type="button" className="station-select" onClick={() => setSelectedStationId(station.id)}>
+                <strong>{station.name}</strong>
+                <span>{station.cityName}, {station.countryCode}</span>
+                {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} C</small>}
+              </button>
+              <div className="station-actions">
+                <button type="button" onClick={() => editStation(station)}>Bearbeiten</button>
+                <button type="button" onClick={() => deleteStation(station.id)}>Loeschen</button>
+              </div>
+            </article>
           ))}
         </div>
 
@@ -152,11 +216,12 @@ export default function Stations({ authFetchJson }) {
           <input value={measurementForm.windSpeedKmh} onChange={(event) => updateMeasurementForm("windSpeedKmh", event.target.value)} placeholder="Wind km/h" type="number" step="0.1" />
           <input value={measurementForm.windDirectionDegrees} onChange={(event) => updateMeasurementForm("windDirectionDegrees", event.target.value)} placeholder="Windrichtung Grad" type="number" />
           <input value={measurementForm.rainfallMm} onChange={(event) => updateMeasurementForm("rainfallMm", event.target.value)} placeholder="Regen mm" type="number" step="0.1" />
-          <input value={measurementForm.notes} onChange={(event) => updateMeasurementForm("notes", event.target.value)} placeholder="Notiz" />
+          <input value={measurementForm.notes} onChange={(event) => updateMeasurementForm("notes", event.target.value)} placeholder="Notiz optional" />
           <button type="submit">Messwert speichern</button>
         </form>
 
         <div className="measurement-list">
+          {measurements.length === 0 && <p className="empty">Noch keine Messwerte gespeichert.</p>}
           {measurements.slice(0, 5).map((measurement) => (
             <article key={measurement.id}>
               <strong>{new Date(measurement.measuredAtUtc).toLocaleString("de-DE")}</strong>

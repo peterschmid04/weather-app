@@ -17,4 +17,6 @@ public class UserProfile
     public ICollection<WeatherStation> WeatherStations { get; set; } = new List<WeatherStation>();
 
     public ICollection<WeatherRequestLog> WeatherRequestLogs { get; set; } = new List<WeatherRequestLog>();
+
+    public UserThemePreference? ThemePreference { get; set; }
 }
