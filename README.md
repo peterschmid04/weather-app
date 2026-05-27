@@ -90,12 +90,12 @@ AUTH0_CONNECTION_DATABASE=Username-Password-Authentication
 AUTH0_CONNECTION_GOOGLE=google-oauth2
 AUTH0_CONNECTION_APPLE=apple
 AUTH0_CONNECTION_FACEBOOK=facebook
-AUTH0_CONNECTION_INSTAGRAM=instagram
+AUTH0_CONNECTION_GITHUB=github
 
 OPENWEATHERMAP_API_KEY=your-openweathermap-api-key
 ```
 
-`AUTH0_CLIENT_ID` is the Auth0 Single Page Application client ID. For a React SPA this is not a client secret. Social provider secrets for Google, Apple, Facebook, or Instagram belong in the Auth0 Dashboard connections, not in this repository.
+`AUTH0_CLIENT_ID` is the Auth0 Single Page Application client ID. For a React SPA this is not a client secret. Social provider secrets for Google, Apple, Facebook, or GitHub belong in the Auth0 Dashboard connections, not in this repository.
 
 ## Auth0 Setup
 
@@ -118,7 +118,9 @@ Enable these Auth0 connections for the application:
 - Google social connection, usually `google-oauth2`
 - Apple social connection, usually `apple`
 - Facebook social connection, usually `facebook`
-- Instagram or a custom/social connection if your Auth0 tenant/provider setup supports it
+- GitHub social connection, usually `github`
+
+For GitHub login, create a GitHub OAuth App in GitHub Developer Settings, then enter the generated GitHub Client ID and Client Secret into the Auth0 GitHub Social Connection. The project `.env` only needs the Auth0 connection name `github`.
 
 The app uses the Auth0 React SDK in the frontend. Auth0 handles login, registration, password hashing, salts, social login, and token issuing. The backend does not store passwords. The backend validates JWT Bearer access tokens with ASP.NET Core, which is the C# equivalent of reading `Authorization: Bearer ...` in the lecture's FastAPI example.
 
@@ -153,7 +155,7 @@ The server profile `Weather PostgreSQL` is preloaded. If pgAdmin asks for the da
 ## Features
 
 - Auth0 login and registration.
-- Auth0 social login buttons for Google, Apple, Facebook, and Instagram.
+- Auth0 social login buttons for Google, Apple, Facebook, and GitHub.
 - Weather search through the ASP.NET Core API.
 - Forecast, UV index, air quality, humidity, wind, sunrise, and sunset.
 - Own places/weather stations in the web UI.

@@ -4,7 +4,7 @@ const authConnections = [
   { label: "Google", envKey: "REACT_APP_AUTH0_CONNECTION_GOOGLE" },
   { label: "Apple", envKey: "REACT_APP_AUTH0_CONNECTION_APPLE" },
   { label: "Facebook", envKey: "REACT_APP_AUTH0_CONNECTION_FACEBOOK" },
-  { label: "Instagram", envKey: "REACT_APP_AUTH0_CONNECTION_INSTAGRAM" },
+  { label: "GitHub", envKey: "REACT_APP_AUTH0_CONNECTION_GITHUB" },
 ];
 
 export default function LoginOptions({ loginWithRedirect }) {

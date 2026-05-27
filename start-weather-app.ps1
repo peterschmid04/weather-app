@@ -108,7 +108,7 @@ $auth0Database = Read-PlainValue "AUTH0_CONNECTION_DATABASE" "Username-Password-
 $auth0Google = Read-PlainValue "AUTH0_CONNECTION_GOOGLE" "google-oauth2"
 $auth0Apple = Read-PlainValue "AUTH0_CONNECTION_APPLE" "apple"
 $auth0Facebook = Read-PlainValue "AUTH0_CONNECTION_FACEBOOK" "facebook"
-$auth0Instagram = Read-PlainValue "AUTH0_CONNECTION_INSTAGRAM" "instagram"
+$auth0GitHub = Read-PlainValue "AUTH0_CONNECTION_GITHUB" "github"
 
 $openWeatherKey = Read-SecretValue "OPENWEATHERMAP_API_KEY"
 
@@ -126,7 +126,7 @@ $values = [ordered]@{
     AUTH0_CONNECTION_GOOGLE = $auth0Google
     AUTH0_CONNECTION_APPLE = $auth0Apple
     AUTH0_CONNECTION_FACEBOOK = $auth0Facebook
-    AUTH0_CONNECTION_INSTAGRAM = $auth0Instagram
+    AUTH0_CONNECTION_GITHUB = $auth0GitHub
     OPENWEATHERMAP_API_KEY = $openWeatherKey
 }
 
@@ -152,7 +152,7 @@ $envLines = @(
     "AUTH0_CONNECTION_GOOGLE=$auth0Google",
     "AUTH0_CONNECTION_APPLE=$auth0Apple",
     "AUTH0_CONNECTION_FACEBOOK=$auth0Facebook",
-    "AUTH0_CONNECTION_INSTAGRAM=$auth0Instagram",
+    "AUTH0_CONNECTION_GITHUB=$auth0GitHub",
     "",
     "OPENWEATHERMAP_API_KEY=$openWeatherKey"
 )
