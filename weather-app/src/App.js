@@ -2,7 +2,9 @@ import { useState, useEffect,useCallback} from "react";
 import "./App.css";
 import Forecast from "./components/Forecast";
 import Highlights from "./components/Highlights";
+import LoginOptions from "./components/LoginOptions";
 import Sidebar from "./components/Sidebar";
+import Stations from "./components/Stations";
 import { getWeatherImage, getWeatherIcons } from "./utils/weatherUtils";
 import {getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality} from "./utils/statusUtils";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -51,19 +53,9 @@ export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const [currentDay] = useState(getCurrentDay());
 
-  const loginWithGoogle = () =>
-    loginWithRedirect({
-      authorizationParams: {
-        connection: "google-oauth2",
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: process.env.REACT_APP_AUTH0_SCOPE,
-        redirect_uri: window.location.origin,
-      },
-    });
-
   // Function to fetch JSON data with Auth0 token
   const authFetchJson = useCallback(
-    async (url) => {
+    async (url, options = {}) => {
       const token = await getAccessTokenSilently({
         authorizationParams: {
           audience: process.env.REACT_APP_AUTH0_AUDIENCE,
@@ -72,9 +64,12 @@ export default function WeatherApp() {
       });
 
       const res = await fetch(url, {
+        ...options,
         headers: {
+          ...(options.headers || {}),
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
+          ...(options.body ? { "Content-Type": "application/json" } : {}),
         },
       });
 
@@ -239,11 +234,7 @@ export default function WeatherApp() {
   }, [isAuthenticated, fetchWeatherData]);
 
   if (!isAuthenticated) {
-    return (
-      <div style={{ padding: 24 }}>
-        <button className="login" onClick={loginWithGoogle}>Login with Google</button>
-      </div>
-    );
+    return <LoginOptions loginWithRedirect={loginWithRedirect} />;
   }
 
   return (
@@ -283,6 +274,7 @@ export default function WeatherApp() {
         </>
       )}
       {error && <p className="errorDisplay">{error}</p> }
+      <Stations authFetchJson={authFetchJson} />
     {!weather && <button className="errorLogout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin }  })}>Logout</button>}  
     </div>
   );

@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Weather PostgreSQL",
+      "Group": "Weather App",
+      "Host": "db",
+      "Port": 5432,
+      "MaintenanceDB": "weather_app",
+      "Username": "weather_app",
+      "SSLMode": "prefer"
+    }
+  }
+}

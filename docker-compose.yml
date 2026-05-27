@@ -1,12 +1,55 @@
 services:
+  db:
+    image: postgres:latest
+    container_name: weather-app-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-weather_app}
+      POSTGRES_USER: ${POSTGRES_USER:-weather_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - weather_app_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: weather-app-pgadmin
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD is required}
+    ports:
+      - "5050:80"
+    volumes:
+      - weather_app_pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     image: mcr.microsoft.com/dotnet/sdk:9.0
     container_name: weather-app-api
+    env_file:
+      - .env
     working_dir: /workspace/weatherAPIOAuth/weatherAPI
     command: sh -c "dotnet restore && dotnet run --no-restore --urls http://0.0.0.0:5122"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:5122
+      ConnectionStrings__WeatherDatabase: Host=db;Port=5432;Database=${POSTGRES_DB:-weather_app};Username=${POSTGRES_USER:-weather_app};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      Auth0__Domain: ${AUTH0_DOMAIN}
+      Auth0__Audience: ${AUTH0_AUDIENCE}
+      Auth0__ClientId: ${AUTH0_CLIENT_ID}
+      OpenWeatherMap__ApiKey: ${OPENWEATHERMAP_API_KEY}
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
     ports:
       - "5122:5122"
@@ -15,10 +58,17 @@ services:
       - weather_app_nuget:/root/.nuget/packages
       - weather_app_backend_bin:/workspace/weatherAPIOAuth/weatherAPI/bin
       - weather_app_backend_obj:/workspace/weatherAPIOAuth/weatherAPI/obj
+      - weather_app_backend_test_bin:/workspace/weatherAPIOAuth/weatherAPI.Test/bin
+      - weather_app_backend_test_obj:/workspace/weatherAPIOAuth/weatherAPI.Test/obj
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     image: node:24
     container_name: weather-app-frontend
+    env_file:
+      - .env
     working_dir: /workspace/weather-app
     command: sh -c "npm ci && npm start"
     environment:
@@ -27,16 +77,30 @@ services:
       BROWSER: none
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      REACT_APP_AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      REACT_APP_AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
+      REACT_APP_AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      REACT_APP_AUTH0_SCOPE: ${AUTH0_SCOPE:-openid profile email read:weather}
+      REACT_APP_AUTH0_CONNECTION_DATABASE: ${AUTH0_CONNECTION_DATABASE:-Username-Password-Authentication}
+      REACT_APP_AUTH0_CONNECTION_GOOGLE: ${AUTH0_CONNECTION_GOOGLE:-google-oauth2}
+      REACT_APP_AUTH0_CONNECTION_APPLE: ${AUTH0_CONNECTION_APPLE:-apple}
+      REACT_APP_AUTH0_CONNECTION_FACEBOOK: ${AUTH0_CONNECTION_FACEBOOK:-facebook}
+      REACT_APP_AUTH0_CONNECTION_INSTAGRAM: ${AUTH0_CONNECTION_INSTAGRAM:-instagram}
     ports:
       - "3000:3000"
     volumes:
       - .:/workspace
       - weather_app_frontend_node_modules:/workspace/weather-app/node_modules
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
 volumes:
+  weather_app_postgres_data:
+  weather_app_pgadmin_data:
   weather_app_nuget:
   weather_app_backend_bin:
   weather_app_backend_obj:
+  weather_app_backend_test_bin:
+  weather_app_backend_test_obj:
   weather_app_frontend_node_modules:
