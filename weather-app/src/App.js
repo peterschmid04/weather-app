@@ -51,6 +51,16 @@ export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const [currentDay] = useState(getCurrentDay());
 
+  const loginWithGoogle = () =>
+    loginWithRedirect({
+      authorizationParams: {
+        connection: "google-oauth2",
+        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+        scope: process.env.REACT_APP_AUTH0_SCOPE,
+        redirect_uri: window.location.origin,
+      },
+    });
+
   // Function to fetch JSON data with Auth0 token
   const authFetchJson = useCallback(
     async (url) => {
@@ -231,7 +241,7 @@ export default function WeatherApp() {
   if (!isAuthenticated) {
     return (
       <div style={{ padding: 24 }}>
-        <button className="login" onClick={() => loginWithRedirect()}>Login</button>
+        <button className="login" onClick={loginWithGoogle}>Login with Google</button>
       </div>
     );
   }
