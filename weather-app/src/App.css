@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: hsl(0, 0%, 70%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  overflow-x: auto;           
+  overflow-y: auto;        
+  white-space: nowrap;            
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  background: #ffffff98;
+  border-radius: 40px;
+  border: 10px solid hsl(0, 0%, 70%); /* match background */
+  width: 100vw;
+  height: 100vh;
+  overflow-x: auto;             
+  overflow-y: auto;        
+  white-space: nowrap; 
+}
+.header {
+  display: flex;
+  grid-row: 1;
+  grid-column: 2 / 5; 
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.errorDisplay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  grid-column: 2 / 15;
+  grid-row: 2;
+  font-size: 3.5rem;
+  margin-left: 20px;
+  font-weight: bold;
+}
+
+.toggle-buttons {
+  display: flex;
+  grid-row: 1;
+  grid-column: 4;
+  align-items: center;
+  justify-content: center;
+  margin-right: 100px;
+}
+
+.toggle-buttons button {
+  background-color: #bfbfbf;
+  border: none;
+  min-height: 50px;
+  min-width: 50px;
+  cursor: pointer;
+  font-size: 20px;
+  margin: 0 5px;
+  border-radius: 100%;
+  transition: background-color 0.3s;
+}
+
+.toggle-buttons button.active {
+  background-color: #000000;
+  color: white;
+}
+
+.logout {
+  display: flex;
+  grid-row: 1;
+  grid-column: 5;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  width: 8vw;
+  height: 6vh;
+  cursor: pointer;
+  font-size: 1.6rem;
+  border: solid 2px #000000;
+  z-index: 10;
+}
+.logout:hover {
+  background-color: #f2f2f2;
+  color: rgb(0, 0, 0);
+  transition: background-color 0.3s, color 0.3s;
+  border: #000000 solid 3.2px;
+} 
+
+.errorLogout {
+  display: flex;
+  grid-row: 1;
+  grid-column: 5;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  width: 8vw;
+  height: 6vh;
+  margin: 5vw;
+  cursor: pointer;
+  font-size: 1.6rem;
+  border: solid 2px #000000;
+  z-index: 10;
+}
+.errorLogout :hover {
+  background-color: #f2f2f2;
+  color: rgb(0, 0, 0);
+  transition: background-color 0.3s, color 0.3s;
+  border: #000000 solid 3.2px;
+} 
+
+.login {
+  background-color: #ffffff;
+  color: rgb(0, 0, 0);
+  width: 15vw;
+  height: 13vh;
+  cursor: pointer;
+  font-size: 2.5rem;
+  border: none;
+  border-radius: 20px;
+}
+.login:hover {
+  background-color: #eeeeee;
+  color: rgb(0, 0, 0);
+  transition: background-color 0.3s, color 0.3s;
+  border: #000000 solid 2px;
+} 
