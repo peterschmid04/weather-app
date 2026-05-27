@@ -18,5 +18,7 @@ public class City
 
     public ICollection<FavoriteCity> FavoriteCities { get; set; } = new List<FavoriteCity>();
 
+    public ICollection<WeatherStation> WeatherStations { get; set; } = new List<WeatherStation>();
+
     public ICollection<WeatherRequestLog> WeatherRequestLogs { get; set; } = new List<WeatherRequestLog>();
 }

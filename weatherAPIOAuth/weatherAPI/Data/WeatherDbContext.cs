@@ -13,6 +13,10 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
 
     public DbSet<FavoriteCity> FavoriteCities => Set<FavoriteCity>();
 
+    public DbSet<WeatherStation> WeatherStations => Set<WeatherStation>();
+
+    public DbSet<WeatherStationMeasurement> WeatherStationMeasurements => Set<WeatherStationMeasurement>();
+
     public DbSet<WeatherRequestLog> WeatherRequestLogs => Set<WeatherRequestLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -64,6 +68,35 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
                 .HasForeignKey(favorite => favorite.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(favorite => new { favorite.AppUserId, favorite.CityId }).IsUnique();
+        });
+
+        modelBuilder.Entity<WeatherStation>(entity =>
+        {
+            entity.HasKey(station => station.Id);
+            entity.Property(station => station.Name).HasMaxLength(120).IsRequired();
+            entity.Property(station => station.Description).HasMaxLength(500);
+            entity.Property(station => station.CreatedAtUtc).HasDefaultValueSql("now()");
+            entity.HasOne(station => station.User)
+                .WithMany(user => user.WeatherStations)
+                .HasForeignKey(station => station.AppUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(station => station.City)
+                .WithMany(city => city.WeatherStations)
+                .HasForeignKey(station => station.CityId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(station => new { station.AppUserId, station.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<WeatherStationMeasurement>(entity =>
+        {
+            entity.HasKey(measurement => measurement.Id);
+            entity.Property(measurement => measurement.MeasuredAtUtc).HasDefaultValueSql("now()");
+            entity.Property(measurement => measurement.Notes).HasMaxLength(500);
+            entity.HasOne(measurement => measurement.WeatherStation)
+                .WithMany(station => station.Measurements)
+                .HasForeignKey(measurement => measurement.WeatherStationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(measurement => new { measurement.WeatherStationId, measurement.MeasuredAtUtc });
         });
 
         modelBuilder.Entity<WeatherRequestLog>(entity =>
