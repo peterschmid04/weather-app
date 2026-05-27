@@ -1,11 +1,13 @@
 using Microsoft.OpenApi.Models; 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using weatherAPI.Services;
 using weatherAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 using weatherAPI.Data;
 using weatherAPI.Models.Database;
 using weatherAPI.Models.Dto;
@@ -69,6 +71,32 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader());
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                GetRateLimitPartitionKey(context),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                })),
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                GetRateLimitPartitionKey(context),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 1000,
+                    Window = TimeSpan.FromHours(1),
+                    QueueLimit = 0,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                })));
+});
+
 // Auth0 JWT
 var domain   = builder.Configuration["Auth0:Domain"];
 var audience = builder.Configuration["Auth0:Audience"];
@@ -106,6 +134,7 @@ app.UseSwaggerUI(o =>
 });
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 var rnd = new Random();
@@ -132,14 +161,65 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapGet("/weather", async (HttpContext http, string city, [FromServices] IWeatherService weatherService) =>
+app.MapGet("/weather", async (
+    HttpContext http,
+    string? city,
+    [FromServices] IWeatherService weatherService,
+    [FromServices] WeatherDbContext db) =>
 {
-    var resultWeather = await weatherService.GetWeather(city); 
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (string.IsNullOrWhiteSpace(city) || city.Trim().Length > 160)
+    {
+        return Results.BadRequest(new { message = "City name is required and must be 160 characters or less." });
+    }
+
+    var queryText = city.Trim();
+    var resultWeather = await weatherService.GetWeather(queryText);
     if (resultWeather is null)
-       return Results.Problem("Weather data not available."); 
+    {
+        await AddWeatherRequestLogAsync(db, user.Id, null, http.Request.Method, "/weather", queryText, StatusCodes.Status404NotFound, false, "City not found.");
+        return Results.NotFound(new { message = "City not found." });
+    }
+
     if (!RegionAuthorization.IsCountryAllowed(http.User, resultWeather.Country!)) 
-       return Results.StatusCode(StatusCodes.Status403Forbidden); 
-    return Results.Json(resultWeather);
+    {
+        await AddWeatherRequestLogAsync(db, user.Id, null, http.Request.Method, "/weather", queryText, StatusCodes.Status403Forbidden, false, "Region not allowed.");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    var cityEntity = await FindOrCreateCityAsync(
+        db,
+        resultWeather.City,
+        resultWeather.Country,
+        resultWeather.Lat,
+        resultWeather.Lon);
+
+    db.SearchHistory.Add(new SearchHistory
+    {
+        Id = Guid.NewGuid(),
+        UserProfileId = user.Id,
+        City = cityEntity,
+        QueryText = queryText
+    });
+    db.WeatherRequestLogs.Add(new WeatherRequestLog
+    {
+        Id = Guid.NewGuid(),
+        UserProfileId = user.Id,
+        City = cityEntity,
+        HttpMethod = http.Request.Method,
+        Endpoint = "/weather",
+        QueryText = queryText,
+        StatusCode = StatusCodes.Status200OK,
+        WasSuccessful = true
+    });
+    await db.SaveChangesAsync();
+
+    return Results.Ok(resultWeather);
 });
 
 app.MapGet("/uv", async (double lat, double lon, [FromServices] IUvService uvService) =>
@@ -170,6 +250,301 @@ app.MapGet("/my-profile", async (HttpContext http, [FromServices] WeatherDbConte
             user.Auth0Subject,
             http.User.FindFirst("name")?.Value,
             http.User.FindFirst(ClaimTypes.Email)?.Value ?? http.User.FindFirst("email")?.Value));
+});
+
+var history = app.MapGroup("/history");
+
+history.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await db.SearchHistory
+        .AsNoTracking()
+        .Where(item => item.UserProfileId == user.Id)
+        .OrderByDescending(item => item.SearchedAtUtc)
+        .Take(25)
+        .Select(item => new SearchHistoryResponse(
+            item.Id,
+            item.QueryText,
+            item.City.Name,
+            item.City.CountryCode,
+            item.City.Latitude,
+            item.City.Longitude,
+            item.SearchedAtUtc))
+        .ToListAsync();
+
+    return Results.Ok(result);
+});
+
+history.MapPost("/", async (
+    HttpContext http,
+    [FromBody] CityRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validationError = ValidateCityRequest(request);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { message = validationError });
+    }
+
+    var city = await FindOrCreateCityAsync(db, request.CityName, request.CountryCode, request.Latitude, request.Longitude);
+    var item = new SearchHistory
+    {
+        Id = Guid.NewGuid(),
+        UserProfileId = user.Id,
+        City = city,
+        QueryText = request.CityName.Trim()
+    };
+
+    db.SearchHistory.Add(item);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/history/{item.Id}", new SearchHistoryResponse(
+        item.Id,
+        item.QueryText,
+        city.Name,
+        city.CountryCode,
+        city.Latitude,
+        city.Longitude,
+        item.SearchedAtUtc));
+});
+
+history.MapDelete("/{historyId:guid}", async (
+    HttpContext http,
+    Guid historyId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var item = await db.SearchHistory
+        .SingleOrDefaultAsync(existing => existing.Id == historyId && existing.UserProfileId == user.Id);
+
+    if (item is null)
+    {
+        return Results.NotFound(new { message = "History item not found." });
+    }
+
+    db.SearchHistory.Remove(item);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+var favorites = app.MapGroup("/favorites");
+
+favorites.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await db.FavoriteCities
+        .AsNoTracking()
+        .Where(favorite => favorite.UserProfileId == user.Id)
+        .OrderBy(favorite => favorite.City.Name)
+        .Select(favorite => new FavoriteCityResponse(
+            favorite.Id,
+            favorite.City.Name,
+            favorite.City.CountryCode,
+            favorite.City.Latitude,
+            favorite.City.Longitude,
+            favorite.CreatedAtUtc))
+        .ToListAsync();
+
+    return Results.Ok(result);
+});
+
+favorites.MapPost("/", async (
+    HttpContext http,
+    [FromBody] CityRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validationError = ValidateCityRequest(request);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { message = validationError });
+    }
+
+    var city = await FindOrCreateCityAsync(db, request.CityName, request.CountryCode, request.Latitude, request.Longitude);
+    var duplicateExists = await db.FavoriteCities
+        .AnyAsync(favorite => favorite.UserProfileId == user.Id && favorite.CityId == city.Id);
+
+    if (duplicateExists)
+    {
+        return Results.Conflict(new { message = "City is already in favorites." });
+    }
+
+    var favorite = new FavoriteCity
+    {
+        Id = Guid.NewGuid(),
+        UserProfileId = user.Id,
+        City = city
+    };
+
+    db.FavoriteCities.Add(favorite);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/favorites/{favorite.Id}", new FavoriteCityResponse(
+        favorite.Id,
+        city.Name,
+        city.CountryCode,
+        city.Latitude,
+        city.Longitude,
+        favorite.CreatedAtUtc));
+});
+
+favorites.MapPut("/{favoriteId:guid}", async (
+    HttpContext http,
+    Guid favoriteId,
+    [FromBody] CityRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validationError = ValidateCityRequest(request);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { message = validationError });
+    }
+
+    var favorite = await db.FavoriteCities
+        .SingleOrDefaultAsync(existing => existing.Id == favoriteId && existing.UserProfileId == user.Id);
+
+    if (favorite is null)
+    {
+        return Results.NotFound(new { message = "Favorite not found." });
+    }
+
+    var city = await FindOrCreateCityAsync(db, request.CityName, request.CountryCode, request.Latitude, request.Longitude);
+    var duplicateExists = await db.FavoriteCities
+        .AnyAsync(existing =>
+            existing.Id != favorite.Id &&
+            existing.UserProfileId == user.Id &&
+            existing.CityId == city.Id);
+
+    if (duplicateExists)
+    {
+        return Results.Conflict(new { message = "City is already in favorites." });
+    }
+
+    favorite.City = city;
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new FavoriteCityResponse(
+        favorite.Id,
+        city.Name,
+        city.CountryCode,
+        city.Latitude,
+        city.Longitude,
+        favorite.CreatedAtUtc));
+});
+
+favorites.MapDelete("/{favoriteId:guid}", async (
+    HttpContext http,
+    Guid favoriteId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var favorite = await db.FavoriteCities
+        .SingleOrDefaultAsync(existing => existing.Id == favoriteId && existing.UserProfileId == user.Id);
+
+    if (favorite is null)
+    {
+        return Results.NotFound(new { message = "Favorite not found." });
+    }
+
+    db.FavoriteCities.Remove(favorite);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+var theme = app.MapGroup("/theme");
+
+theme.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var themeName = await db.UserThemePreferences
+        .AsNoTracking()
+        .Where(preference => preference.UserProfileId == user.Id)
+        .Select(preference => preference.ThemeName)
+        .SingleOrDefaultAsync() ?? "graphite";
+
+    return Results.Ok(new ThemePreferenceResponse(themeName));
+});
+
+theme.MapPut("/", async (
+    HttpContext http,
+    [FromBody] UpdateThemePreferenceRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var themeName = NormalizeThemeName(request.ThemeName);
+    if (themeName is null)
+    {
+        return Results.BadRequest(new { message = "Unknown theme." });
+    }
+
+    var preference = await db.UserThemePreferences
+        .SingleOrDefaultAsync(existing => existing.UserProfileId == user.Id);
+
+    if (preference is null)
+    {
+        preference = new UserThemePreference
+        {
+            Id = Guid.NewGuid(),
+            UserProfileId = user.Id,
+            ThemeName = themeName
+        };
+        db.UserThemePreferences.Add(preference);
+    }
+    else
+    {
+        preference.ThemeName = themeName;
+        preference.UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    await db.SaveChangesAsync();
+    return Results.Ok(new ThemePreferenceResponse(themeName));
 });
 
 var stations = app.MapGroup("/stations");
@@ -224,15 +599,15 @@ stations.MapPost("/", async (
         return Results.Unauthorized();
     }
 
-    var validationError = ValidateStationRequest(request);
+    var validationError = ValidateCreateStationRequest(request);
     if (validationError is not null)
     {
         return Results.BadRequest(new { message = validationError });
     }
 
     var stationName = request.Name.Trim();
-    var cityName = request.CityName.Trim();
-    var countryCode = request.CountryCode.Trim().ToUpperInvariant();
+    var cityName = string.IsNullOrWhiteSpace(request.CityName) ? stationName : request.CityName.Trim();
+    var countryCode = NormalizeCountryCode(request.CountryCode);
     var normalizedCityName = NormalizeCityName(cityName);
 
     var duplicateExists = await db.WeatherStations
@@ -285,6 +660,111 @@ stations.MapPost("/", async (
         station.Longitude,
         station.CreatedAtUtc,
         null));
+});
+
+stations.MapPut("/{stationId:guid}", async (
+    HttpContext http,
+    Guid stationId,
+    [FromBody] UpdateWeatherStationRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validationError = ValidateUpdateStationRequest(request);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { message = validationError });
+    }
+
+    var station = await db.WeatherStations
+        .Include(existing => existing.City)
+        .SingleOrDefaultAsync(existing => existing.Id == stationId && existing.UserProfileId == user.Id);
+
+    if (station is null)
+    {
+        return Results.NotFound(new { message = "Station not found." });
+    }
+
+    var stationName = request.Name.Trim();
+    var cityName = string.IsNullOrWhiteSpace(request.CityName) ? stationName : request.CityName.Trim();
+    var countryCode = NormalizeCountryCode(request.CountryCode);
+    var normalizedCityName = NormalizeCityName(cityName);
+
+    var duplicateExists = await db.WeatherStations
+        .AnyAsync(existing =>
+            existing.Id != station.Id &&
+            existing.UserProfileId == user.Id &&
+            existing.Name == stationName);
+
+    if (duplicateExists)
+    {
+        return Results.Conflict(new { message = "A station with this name already exists." });
+    }
+
+    var city = await db.Cities.SingleOrDefaultAsync(existingCity =>
+        existingCity.NormalizedName == normalizedCityName &&
+        existingCity.CountryCode == countryCode);
+
+    if (city is null)
+    {
+        city = new City
+        {
+            Id = Guid.NewGuid(),
+            Name = cityName,
+            NormalizedName = normalizedCityName,
+            CountryCode = countryCode,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude
+        };
+        db.Cities.Add(city);
+    }
+
+    station.Name = stationName;
+    station.City = city;
+    station.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+    station.Latitude = request.Latitude;
+    station.Longitude = request.Longitude;
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new WeatherStationResponse(
+        station.Id,
+        station.Name,
+        city.Name,
+        city.CountryCode,
+        station.Description,
+        station.Latitude,
+        station.Longitude,
+        station.CreatedAtUtc,
+        null));
+});
+
+stations.MapDelete("/{stationId:guid}", async (
+    HttpContext http,
+    Guid stationId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var station = await db.WeatherStations
+        .SingleOrDefaultAsync(existing => existing.Id == stationId && existing.UserProfileId == user.Id);
+
+    if (station is null)
+    {
+        return Results.NotFound(new { message = "Station not found." });
+    }
+
+    db.WeatherStations.Remove(station);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
 });
 
 stations.MapGet("/{stationId:guid}/measurements", async (
@@ -414,24 +894,19 @@ static WeatherStationMeasurementResponse ToMeasurementResponse(WeatherStationMea
         measurement.RainfallMm,
         measurement.Notes);
 
-static string? ValidateStationRequest(CreateWeatherStationRequest request)
+static string? ValidateCityRequest(CityRequest request)
 {
-    if (string.IsNullOrWhiteSpace(request.Name))
-    {
-        return "Station name is required.";
-    }
-
-    if (request.Name.Trim().Length > 120)
-    {
-        return "Station name must be 120 characters or less.";
-    }
-
     if (string.IsNullOrWhiteSpace(request.CityName))
     {
         return "City name is required.";
     }
 
-    if (string.IsNullOrWhiteSpace(request.CountryCode) || request.CountryCode.Trim().Length != 2)
+    if (request.CityName.Trim().Length > 160)
+    {
+        return "City name must be 160 characters or less.";
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.CountryCode) && request.CountryCode.Trim().Length != 2)
     {
         return "Country code must contain exactly two letters.";
     }
@@ -442,6 +917,47 @@ static string? ValidateStationRequest(CreateWeatherStationRequest request)
     }
 
     if (request.Longitude is < -180 or > 180)
+    {
+        return "Longitude must be between -180 and 180.";
+    }
+
+    return null;
+}
+
+static string? ValidateCreateStationRequest(CreateWeatherStationRequest request) =>
+    ValidateStationFields(request.Name, request.CityName, request.CountryCode, request.Latitude, request.Longitude);
+
+static string? ValidateUpdateStationRequest(UpdateWeatherStationRequest request) =>
+    ValidateStationFields(request.Name, request.CityName, request.CountryCode, request.Latitude, request.Longitude);
+
+static string? ValidateStationFields(string name, string? cityName, string? countryCode, double? latitude, double? longitude)
+{
+    if (string.IsNullOrWhiteSpace(name))
+    {
+        return "Station name is required.";
+    }
+
+    if (name.Trim().Length > 120)
+    {
+        return "Station name must be 120 characters or less.";
+    }
+
+    if (!string.IsNullOrWhiteSpace(cityName) && cityName.Trim().Length > 160)
+    {
+        return "City name must be 160 characters or less.";
+    }
+
+    if (!string.IsNullOrWhiteSpace(countryCode) && countryCode.Trim().Length != 2)
+    {
+        return "Country code must contain exactly two letters.";
+    }
+
+    if (latitude is < -90 or > 90)
+    {
+        return "Latitude must be between -90 and 90.";
+    }
+
+    if (longitude is < -180 or > 180)
     {
         return "Longitude must be between -180 and 180.";
     }
@@ -468,5 +984,94 @@ static string? ValidateMeasurementRequest(CreateWeatherStationMeasurementRequest
 
     return null;
 }
+
+static async Task<City> FindOrCreateCityAsync(
+    WeatherDbContext db,
+    string cityName,
+    string? countryCode,
+    double? latitude,
+    double? longitude)
+{
+    var name = cityName.Trim();
+    var normalizedCityName = NormalizeCityName(name);
+    var normalizedCountryCode = NormalizeCountryCode(countryCode);
+    var city = await db.Cities.SingleOrDefaultAsync(existingCity =>
+        existingCity.NormalizedName == normalizedCityName &&
+        existingCity.CountryCode == normalizedCountryCode);
+
+    if (city is not null)
+    {
+        if (latitude is not null)
+        {
+            city.Latitude = latitude;
+        }
+
+        if (longitude is not null)
+        {
+            city.Longitude = longitude;
+        }
+
+        return city;
+    }
+
+    city = new City
+    {
+        Id = Guid.NewGuid(),
+        Name = name,
+        NormalizedName = normalizedCityName,
+        CountryCode = normalizedCountryCode,
+        Latitude = latitude,
+        Longitude = longitude
+    };
+    db.Cities.Add(city);
+    return city;
+}
+
+static async Task AddWeatherRequestLogAsync(
+    WeatherDbContext db,
+    Guid? userProfileId,
+    Guid? cityId,
+    string httpMethod,
+    string endpoint,
+    string? queryText,
+    int statusCode,
+    bool wasSuccessful,
+    string? errorMessage)
+{
+    db.WeatherRequestLogs.Add(new WeatherRequestLog
+    {
+        Id = Guid.NewGuid(),
+        UserProfileId = userProfileId,
+        CityId = cityId,
+        HttpMethod = httpMethod,
+        Endpoint = endpoint,
+        QueryText = string.IsNullOrWhiteSpace(queryText) ? null : queryText.Trim(),
+        StatusCode = statusCode,
+        WasSuccessful = wasSuccessful,
+        ErrorMessage = errorMessage
+    });
+    await db.SaveChangesAsync();
+}
+
+static string? NormalizeThemeName(string? value)
+{
+    return value?.Trim().ToLowerInvariant() switch
+    {
+        "graphite" => "graphite",
+        "sky" => "sky",
+        "forest" => "forest",
+        "sunset" => "sunset",
+        _ => null
+    };
+}
+
+static string GetRateLimitPartitionKey(HttpContext context) =>
+    context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    ?? context.User.FindFirst("sub")?.Value
+    ?? context.Connection.RemoteIpAddress?.ToString()
+    ?? "anonymous";
+
+static string NormalizeCountryCode(string? value) =>
+    string.IsNullOrWhiteSpace(value) ? "DE" : value.Trim().ToUpperInvariant();
 
 static string NormalizeCityName(string value) => value.Trim().ToUpperInvariant();

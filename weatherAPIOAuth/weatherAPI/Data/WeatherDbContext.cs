@@ -19,6 +19,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
 
     public DbSet<WeatherRequestLog> WeatherRequestLogs => Set<WeatherRequestLog>();
 
+    public DbSet<UserThemePreference> UserThemePreferences => Set<UserThemePreference>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserProfile>(entity =>
@@ -116,6 +118,18 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
                 .HasForeignKey(log => log.CityId)
                 .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(log => log.RequestedAtUtc);
+        });
+
+        modelBuilder.Entity<UserThemePreference>(entity =>
+        {
+            entity.HasKey(preference => preference.Id);
+            entity.Property(preference => preference.ThemeName).HasMaxLength(40).IsRequired();
+            entity.Property(preference => preference.UpdatedAtUtc).HasDefaultValueSql("now()");
+            entity.HasOne(preference => preference.User)
+                .WithOne(user => user.ThemePreference)
+                .HasForeignKey<UserThemePreference>(preference => preference.UserProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(preference => preference.UserProfileId).IsUnique();
         });
     }
 }

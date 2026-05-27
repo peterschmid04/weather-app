@@ -2,8 +2,16 @@ namespace weatherAPI.Models.Dto;
 
 public record CreateWeatherStationRequest(
     string Name,
-    string CityName,
-    string CountryCode,
+    string? CityName,
+    string? CountryCode,
+    string? Description,
+    double? Latitude,
+    double? Longitude);
+
+public record UpdateWeatherStationRequest(
+    string Name,
+    string? CityName,
+    string? CountryCode,
     string? Description,
     double? Latitude,
     double? Longitude);

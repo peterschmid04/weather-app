@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap");
 
 * {
   box-sizing: border-box;
@@ -8,136 +8,243 @@
 
 body {
   font-family: "Poppins", sans-serif;
-  background-color: hsl(0, 0%, 70%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100vw;
-  height: 100vh;
-  overflow-x: auto;           
-  overflow-y: auto;        
-  white-space: nowrap;            
+  background-color: #9ca3af;
+  min-width: 100vw;
+  min-height: 100vh;
+  overflow: auto;
+  white-space: normal;
+}
+
+button,
+input {
+  font-family: inherit;
 }
 
 .weather-grid {
+  --page-bg: #5b5b5b;
+  --surface: #202020;
+  --surface-strong: #191a1d;
+  --panel: #242528;
+  --text: #f8fafc;
+  --muted: #cbd5e1;
+  --line: #4b5563;
+  --input: #111317;
+  --control: #272d35;
+  --accent: #facc15;
+  --accent-text: #111827;
+
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  background: #ffffff98;
-  border-radius: 40px;
-  border: 10px solid hsl(0, 0%, 70%); /* match background */
+  grid-template-columns: minmax(300px, 26rem) repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto auto auto auto;
+  background: var(--page-bg);
+  color: var(--text);
+  border-radius: 0;
+  border: 10px solid #9ca3af;
   width: 100vw;
-  height: 100vh;
-  overflow-x: auto;             
-  overflow-y: auto;        
-  white-space: nowrap; 
+  min-height: 100vh;
+  overflow: visible;
+  white-space: normal;
 }
+
+.weather-grid.theme-sky {
+  --page-bg: #dbeafe;
+  --surface: #eff6ff;
+  --surface-strong: #e0f2fe;
+  --panel: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #93c5fd;
+  --input: #ffffff;
+  --control: #dbeafe;
+  --accent: #0284c7;
+  --accent-text: #ffffff;
+}
+
+.weather-grid.theme-forest {
+  --page-bg: #d1fae5;
+  --surface: #ecfdf5;
+  --surface-strong: #d1fae5;
+  --panel: #ffffff;
+  --text: #052e16;
+  --muted: #166534;
+  --line: #86efac;
+  --input: #ffffff;
+  --control: #dcfce7;
+  --accent: #15803d;
+  --accent-text: #ffffff;
+}
+
+.weather-grid.theme-sunset {
+  --page-bg: #fee2e2;
+  --surface: #fff7ed;
+  --surface-strong: #ffedd5;
+  --panel: #ffffff;
+  --text: #431407;
+  --muted: #9a3412;
+  --line: #fdba74;
+  --input: #ffffff;
+  --control: #fed7aa;
+  --accent: #ea580c;
+  --accent-text: #ffffff;
+}
+
 .header {
-  display: flex;
   grid-row: 1;
-  grid-column: 2 / 5; 
+  grid-column: 2 / 5;
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  gap: 20px;
+  padding: 24px;
+  min-width: 0;
+  color: var(--text);
+}
+
+.location-title {
   font-size: 3rem;
-  font-weight: bold;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.errorDisplay {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  grid-column: 2 / 15;
-  grid-row: 2;
-  font-size: 3.5rem;
-  margin-left: 20px;
-  font-weight: bold;
-}
-
+.header-actions,
 .toggle-buttons {
   display: flex;
-  grid-row: 1;
-  grid-column: 4;
   align-items: center;
-  justify-content: center;
-  margin-right: 100px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .toggle-buttons button {
-  background-color: #bfbfbf;
-  border: none;
+  background-color: var(--control);
+  color: var(--text);
+  border: 1px solid var(--line);
   min-height: 50px;
   min-width: 50px;
   cursor: pointer;
-  font-size: 20px;
-  margin: 0 5px;
+  font-size: 1rem;
   border-radius: 100%;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .toggle-buttons button.active {
   background-color: #000000;
-  color: white;
+  color: #ffffff;
 }
 
-.logout {
-  display: flex;
-  grid-row: 1;
-  grid-column: 5;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  color: rgb(0, 0, 0);
-  width: 8vw;
-  height: 6vh;
-  cursor: pointer;
-  font-size: 1.6rem;
-  border: solid 2px #000000;
-  z-index: 10;
-}
-.logout:hover {
-  background-color: #f2f2f2;
-  color: rgb(0, 0, 0);
-  transition: background-color 0.3s, color 0.3s;
-  border: #000000 solid 3.2px;
-} 
-
+.logout,
 .errorLogout {
   display: flex;
-  grid-row: 1;
-  grid-column: 5;
   align-items: center;
   justify-content: center;
-  background-color: #ffffff;
-  color: rgb(0, 0, 0);
-  width: 8vw;
-  height: 6vh;
-  margin: 5vw;
+  background-color: #111111;
+  color: #ffffff;
+  min-width: 130px;
+  min-height: 56px;
   cursor: pointer;
-  font-size: 1.6rem;
-  border: solid 2px #000000;
-  z-index: 10;
+  font-size: 1.1rem;
+  border: 1px solid #000000;
+  border-radius: 0;
 }
-.errorLogout :hover {
+
+.logout:hover,
+.errorLogout:hover {
   background-color: #f2f2f2;
-  color: rgb(0, 0, 0);
-  transition: background-color 0.3s, color 0.3s;
-  border: #000000 solid 3.2px;
-} 
+  color: #000000;
+}
+
+.errorLogout {
+  grid-row: 1;
+  grid-column: 4;
+  align-self: start;
+  justify-self: end;
+  margin: 24px;
+}
+
+.errorDisplay {
+  grid-column: 2 / 5;
+  grid-row: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 160px;
+  padding: 24px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: normal;
+  text-align: center;
+}
+
+.weather-grid .sidebar {
+  background: var(--surface);
+  color: var(--text);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.weather-grid .cityInput,
+.weather-grid .station-form input,
+.weather-grid .measurement-form input {
+  background: var(--input);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.weather-grid .forecast-box,
+.weather-grid .highlight-box {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.weather-grid .highlight-box h3,
+.weather-grid .highlight-box p,
+.weather-grid .highlight-box strong,
+.weather-grid .forecast-box .max-temp,
+.weather-grid .date .time {
+  color: var(--muted);
+}
 
 .login {
   background-color: #ffffff;
-  color: rgb(0, 0, 0);
-  width: 15vw;
-  height: 13vh;
+  color: #000000;
+  width: 15rem;
+  min-height: 6rem;
   cursor: pointer;
-  font-size: 2.5rem;
+  font-size: 2rem;
   border: none;
   border-radius: 20px;
 }
+
 .login:hover {
   background-color: #eeeeee;
-  color: rgb(0, 0, 0);
-  transition: background-color 0.3s, color 0.3s;
+  color: #000000;
   border: #000000 solid 2px;
-} 
+}
+
+@media (max-width: 1100px) {
+  .weather-grid {
+    grid-template-columns: minmax(260px, 22rem) repeat(3, minmax(0, 1fr));
+  }
+
+  .location-title {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .weather-grid {
+    display: block;
+    min-width: 320px;
+  }
+
+  .header,
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .location-title {
+    font-size: 2rem;
+  }
+}

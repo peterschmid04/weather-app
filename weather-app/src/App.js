@@ -1,13 +1,17 @@
-import { useState, useEffect,useCallback} from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import Forecast from "./components/Forecast";
 import Highlights from "./components/Highlights";
 import LoginOptions from "./components/LoginOptions";
 import Sidebar from "./components/Sidebar";
 import Stations from "./components/Stations";
+import UserDataPanel from "./components/UserDataPanel";
 import { getWeatherImage, getWeatherIcons } from "./utils/weatherUtils";
-import {getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality} from "./utils/statusUtils";
+import { getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality } from "./utils/statusUtils";
 import { useAuth0 } from "@auth0/auth0-react";
+
+const API_BASE = "http://localhost:5122";
+
 class HttpError extends Error {
   constructor(status, message, body) {
     super(message);
@@ -16,7 +20,7 @@ class HttpError extends Error {
     this.body = body;
   }
 }
-// Main weather app component
+
 export default function WeatherApp() {
   const [inputCity, setInputCity] = useState("Lossburg");
   const [city, setCity] = useState("Lossburg");
@@ -27,33 +31,30 @@ export default function WeatherApp() {
   const [error, setError] = useState("");
   const [timezoneOffset, setTimezoneOffset] = useState(0);
   const [isCelsius, setIsCelsius] = useState(true);
-  const { isAuthenticated,  loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [themeName, setThemeName] = useState("graphite");
+  const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
 
-  const timezoneOffsetFormatted =
-    timezoneOffset >= 0 ? `+${timezoneOffset}` : timezoneOffset;
+  const timezoneOffsetFormatted = timezoneOffset >= 0 ? `+${timezoneOffset}` : timezoneOffset;
 
-  // Get current time formatted
   const getCurrentTime = () => {
     const now = new Date();
-    return now.toLocaleTimeString("de-DE", {  
+    return now.toLocaleTimeString("de-DE", {
       second: undefined,
       hour: "2-digit",
       minute: "2-digit",
       hourCycle: "h23",
     });
-  }
+  };
 
-  // Get current day name
   const getCurrentDay = () => {
     const now = new Date();
-    const options = { weekday: "long" };
-    return now.toLocaleDateString("en-En", options);
+    return now.toLocaleDateString("en-En", { weekday: "long" });
   };
 
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const [currentDay] = useState(getCurrentDay());
 
-  // Function to fetch JSON data with Auth0 token
   const authFetchJson = useCallback(
     async (url, options = {}) => {
       const token = await getAccessTokenSilently({
@@ -74,52 +75,54 @@ export default function WeatherApp() {
       });
 
       let body = null;
-      try { body = await res.json(); } catch (_) {}
+      try {
+        body = await res.json();
+      } catch (_) {
+        body = null;
+      }
 
       if (!res.ok) {
-        const msg =
-          body?.title ||
-          body?.error ||
-          body?.message ||
-          res.statusText ||
-          `HTTP ${res.status}`;
+        const msg = body?.title || body?.error || body?.message || res.statusText || `HTTP ${res.status}`;
         throw new HttpError(res.status, msg, body);
       }
+
       return body;
     },
     [getAccessTokenSilently]
   );
 
-  // Fetch weather and related data for a city
   const fetchWeatherData = useCallback(
-    async (city) => {
+    async (nextCity) => {
       try {
-        const data = await authFetchJson(`http://localhost:5122/weather?city=${encodeURIComponent(city)}`);
-        if (!data) throw new Error("No data found");
-        if (data.Error) throw new Error(data.Error);
-        
+        const data = await authFetchJson(`${API_BASE}/weather?city=${encodeURIComponent(nextCity)}`);
+        if (!data) {
+          throw new Error("No weather data found.");
+        }
+
         setCountry(data.country);
         setTimezoneOffset(data.timezoneOffsetHours);
-
         setWeather({
           city: data.city,
-          temp: (data.temperatureC),
+          temp: data.temperatureC,
           humidity: data.humidity,
           visibility: data.visibilityKm,
           description: data.description,
           image: getWeatherImage(data.weatherId),
           icon: getWeatherIcons(data.weatherId),
+          lat: data.lat,
+          lon: data.lon,
         });
 
-        setCity(data.city); // Set city to actual found value
+        setCity(data.city);
         setError("");
+        setHistoryRefreshKey((current) => current + 1);
 
-        const uvData       = await authFetchJson(`http://localhost:5122/uv?lat=${data.lat}&lon=${data.lon}`);
-        const airQualityData = await authFetchJson(`http://localhost:5122/airquality?lat=${data.lat}&lon=${data.lon}`);
-        const forecastData = await authFetchJson(`http://localhost:5122/forecast?lat=${data.lat}&lon=${data.lon}`);
+        const uvData = await authFetchJson(`${API_BASE}/uv?lat=${data.lat}&lon=${data.lon}`);
+        const airQualityData = await authFetchJson(`${API_BASE}/airquality?lat=${data.lat}&lon=${data.lon}`);
+        const forecast = await authFetchJson(`${API_BASE}/forecast?lat=${data.lat}&lon=${data.lon}`);
 
         setForecastData(
-          forecastData.slice(0, 6).map((day) => ({
+          forecast.slice(0, 6).map((day) => ({
             day: day.day,
             image: getWeatherImage(day.id),
             description: day.description,
@@ -128,13 +131,8 @@ export default function WeatherApp() {
           }))
         );
 
-        // Set highlights for sidebar
         setHighlights([
-          {
-            title: "UV Index",
-            value: uvData.uvIndex,
-            unit: "",
-          },
+          { title: "UV Index", value: uvData.uvIndex, unit: "" },
           {
             title: "Wind Status",
             value: data.windSpeed,
@@ -150,9 +148,9 @@ export default function WeatherApp() {
           },
           {
             title: "Visibility",
-            value: (data.visibilityKm),
+            value: data.visibilityKm,
             unit: "km",
-            status: getStatusVisibility((data.visibilityKm)),
+            status: getStatusVisibility(data.visibilityKm),
           },
           {
             title: "Air Quality",
@@ -161,8 +159,7 @@ export default function WeatherApp() {
             status: getStatusAirquality(airQualityData.aqi),
           },
         ]);
-        setError("");
-       } catch (err) {
+      } catch (err) {
         setWeather(null);
         setHighlights([]);
         setForecastData([]);
@@ -170,34 +167,35 @@ export default function WeatherApp() {
         if (err instanceof HttpError) {
           switch (err.status) {
             case 401:
-              setError("🔒 Not signed in or token expired — please log in again");
+              setError("Nicht eingeloggt oder Sitzung abgelaufen. Bitte erneut anmelden.");
               return;
-
             case 403:
-              setError("⛔ No permission (e.g. region not allowed).");
+              setError("Keine Berechtigung fuer diese Region.");
               return;
-
             case 404:
-              setError("❓ City not found");
+              setError("Stadt wurde nicht gefunden.");
               return;
-
+            case 409:
+              setError("Dieser Eintrag existiert bereits.");
+              return;
+            case 429:
+              setError("Zu viele Anfragen. Bitte kurz warten.");
+              return;
             case 500:
-              setError("❌ unexpected server error");
+              setError("Serverfehler. Bitte spaeter erneut versuchen.");
               return;
-
             default:
-              setError(`Error (${err.status}): ${err.message}`);
+              setError(`Fehler (${err.status}): ${err.message}`);
               return;
           }
-        } else {
-          setError("🌐 Network error or unexpected error.");
         }
+
+        setError("Netzwerkfehler oder unerwarteter Fehler.");
       }
     },
     [authFetchJson]
   );
 
-  // Update time every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(getCurrentTime());
@@ -205,40 +203,52 @@ export default function WeatherApp() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle city search submit
   const handleSubmit = (event) => {
     event.preventDefault();
     if (inputCity.trim()) {
-      fetchWeatherData(inputCity);
+      fetchWeatherData(inputCity.trim());
     } else {
-      setError("Please enter a city!");
+      setError("Bitte eine Stadt eingeben.");
     }
   };
 
-  // Get country flag emoji from country code
-  const getCountryFlagEmoji = (countryCode) => {
-    return countryCode
+  const loadCityFromSavedItem = useCallback(
+    (nextCity) => {
+      setInputCity(nextCity);
+      fetchWeatherData(nextCity);
+    },
+    [fetchWeatherData]
+  );
+
+  const getCountryFlagEmoji = (countryCode) =>
+    countryCode
       .toUpperCase()
-      .replace(/./g, (char) =>
-        String.fromCodePoint(127397 + char.charCodeAt())
-      );
-  };
+      .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt()));
 
   useEffect(() => {
     if (!isAuthenticated) {
-      
       return;
-    } else {
-      fetchWeatherData("Lossburg");
     }
+
+    fetchWeatherData("Lossburg");
   }, [isAuthenticated, fetchWeatherData]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    authFetchJson(`${API_BASE}/theme/`)
+      .then((data) => setThemeName(data.themeName || "graphite"))
+      .catch(() => setThemeName("graphite"));
+  }, [isAuthenticated, authFetchJson]);
 
   if (!isAuthenticated) {
     return <LoginOptions loginWithRedirect={loginWithRedirect} />;
   }
 
   return (
-    <div className="weather-grid">
+    <div className={`weather-grid theme-${themeName}`}>
       <Sidebar
         city={inputCity}
         setCity={setInputCity}
@@ -251,31 +261,47 @@ export default function WeatherApp() {
 
       {weather && (
         <>
+          <div className="header">
+            <span className="location-title">
+              {city}, {getCountryFlagEmoji(country)} UTC{timezoneOffsetFormatted}
+            </span>
+            <div className="header-actions">
+              <div className="toggle-buttons">
+                <button type="button" onClick={() => setIsCelsius(true)} className={isCelsius ? "active" : ""}>
+                  &deg;C
+                </button>
+                <button type="button" onClick={() => setIsCelsius(false)} className={!isCelsius ? "active" : ""}>
+                  &deg;F
+                </button>
+              </div>
+              <button className="logout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+                Logout
+              </button>
+            </div>
+          </div>
           <Forecast forecastData={forecastData} isCelsius={isCelsius} />
           <Highlights highlights={highlights} />
-          <div className="header">
-            {city}, {getCountryFlagEmoji(country)} UTC{timezoneOffsetFormatted}
-            <button className="logout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>Logout</button>
-          </div>
-          <div className="toggle-buttons">
-            <button
-              onClick={() => setIsCelsius(true)}
-              className={isCelsius ? "active" : ""}
-            >
-              °C
-            </button>
-            <button
-              onClick={() => setIsCelsius(false)}
-              className={!isCelsius ? "active" : ""}
-            >
-              °F
-            </button>
-          </div>
         </>
       )}
-      {error && <p className="errorDisplay">{error}</p> }
+
+      {error && <p className="errorDisplay">{error}</p>}
+
+      <UserDataPanel
+        authFetchJson={authFetchJson}
+        currentWeather={weather}
+        currentCountry={country}
+        historyRefreshKey={historyRefreshKey}
+        onSelectCity={loadCityFromSavedItem}
+        themeName={themeName}
+        onThemeChange={setThemeName}
+      />
       <Stations authFetchJson={authFetchJson} />
-    {!weather && <button className="errorLogout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin }  })}>Logout</button>}  
+
+      {!weather && (
+        <button className="errorLogout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+          Logout
+        </button>
+      )}
     </div>
   );
 }
