@@ -3,11 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 using weatherAPI.Services;
 using weatherAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using weatherAPI.Data;
 using weatherAPI.Security;
 
 var builder = WebApplication.CreateBuilder(args);   
 // Add services
+var databaseConnectionString = builder.Configuration.GetConnectionString("WeatherDatabase")
+    ?? throw new InvalidOperationException("Connection string 'WeatherDatabase' is missing. Configure ConnectionStrings__WeatherDatabase.");
+
+builder.Services.AddDbContext<WeatherDbContext>(options =>
+    options.UseNpgsql(databaseConnectionString, npgsqlOptions =>
+        npgsqlOptions.EnableRetryOnFailure()));
+
 builder.Services.AddScoped<IWeatherService, WeatherService>();
 builder.Services.AddScoped<IUvService, UvService>();
 builder.Services.AddScoped<IAirQualityService, AirQualityService>();
@@ -80,6 +89,8 @@ builder.Services
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+await app.Services.ApplyDatabaseMigrationsAsync();
+
 app.UseCors("AllowFrontend");
 app.UseSwagger();
 app.UseSwaggerUI(o =>
