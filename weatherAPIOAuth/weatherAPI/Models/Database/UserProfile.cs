@@ -1,6 +1,6 @@
 namespace weatherAPI.Models.Database;
 
-public class AppUser
+public class UserProfile
 {
     public Guid Id { get; set; }
 

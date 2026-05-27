@@ -184,7 +184,7 @@ stations.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db
 
     var result = await db.WeatherStations
         .AsNoTracking()
-        .Where(station => station.AppUserId == user.Id)
+        .Where(station => station.UserProfileId == user.Id)
         .OrderBy(station => station.Name)
         .Select(station => new WeatherStationResponse(
             station.Id,
@@ -236,7 +236,7 @@ stations.MapPost("/", async (
     var normalizedCityName = NormalizeCityName(cityName);
 
     var duplicateExists = await db.WeatherStations
-        .AnyAsync(station => station.AppUserId == user.Id && station.Name == stationName);
+        .AnyAsync(station => station.UserProfileId == user.Id && station.Name == stationName);
 
     if (duplicateExists)
     {
@@ -264,7 +264,7 @@ stations.MapPost("/", async (
     var station = new WeatherStation
     {
         Id = Guid.NewGuid(),
-        AppUserId = user.Id,
+        UserProfileId = user.Id,
         City = city,
         Name = stationName,
         Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
@@ -299,7 +299,7 @@ stations.MapGet("/{stationId:guid}/measurements", async (
     }
 
     var stationExists = await db.WeatherStations
-        .AnyAsync(station => station.Id == stationId && station.AppUserId == user.Id);
+        .AnyAsync(station => station.Id == stationId && station.UserProfileId == user.Id);
 
     if (!stationExists)
     {
@@ -347,7 +347,7 @@ stations.MapPost("/{stationId:guid}/measurements", async (
     var station = await db.WeatherStations
         .SingleOrDefaultAsync(existingStation =>
             existingStation.Id == stationId &&
-            existingStation.AppUserId == user.Id);
+            existingStation.UserProfileId == user.Id);
 
     if (station is null)
     {
@@ -376,7 +376,7 @@ stations.MapPost("/{stationId:guid}/measurements", async (
 
 app.Run();  
 
-static async Task<AppUser?> GetOrCreateCurrentUserAsync(HttpContext http, WeatherDbContext db)
+static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, WeatherDbContext db)
 {
     var subject = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? http.User.FindFirst("sub")?.Value;
     if (string.IsNullOrWhiteSpace(subject))
@@ -384,20 +384,20 @@ static async Task<AppUser?> GetOrCreateCurrentUserAsync(HttpContext http, Weathe
         return null;
     }
 
-    var user = await db.AppUsers.SingleOrDefaultAsync(existingUser => existingUser.Auth0Subject == subject);
+    var user = await db.UserProfiles.SingleOrDefaultAsync(existingUser => existingUser.Auth0Subject == subject);
     if (user is not null)
     {
         return user;
     }
 
-    user = new AppUser
+    user = new UserProfile
     {
         Id = Guid.NewGuid(),
         Auth0Subject = subject,
         DisplayName = http.User.FindFirst("name")?.Value ?? http.User.FindFirst(ClaimTypes.Email)?.Value
     };
 
-    db.AppUsers.Add(user);
+    db.UserProfiles.Add(user);
     await db.SaveChangesAsync();
     return user;
 }

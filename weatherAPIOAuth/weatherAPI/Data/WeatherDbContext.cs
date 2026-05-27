@@ -5,7 +5,7 @@ namespace weatherAPI.Data;
 
 public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbContext(options)
 {
-    public DbSet<AppUser> AppUsers => Set<AppUser>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
     public DbSet<City> Cities => Set<City>();
 
@@ -21,7 +21,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AppUser>(entity =>
+        modelBuilder.Entity<UserProfile>(entity =>
         {
             entity.HasKey(user => user.Id);
             entity.Property(user => user.Auth0Subject).HasMaxLength(256).IsRequired();
@@ -46,13 +46,13 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.Property(history => history.SearchedAtUtc).HasDefaultValueSql("now()");
             entity.HasOne(history => history.User)
                 .WithMany(user => user.SearchHistory)
-                .HasForeignKey(history => history.AppUserId)
+                .HasForeignKey(history => history.UserProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(history => history.City)
                 .WithMany(city => city.SearchHistory)
                 .HasForeignKey(history => history.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(history => new { history.AppUserId, history.SearchedAtUtc });
+            entity.HasIndex(history => new { history.UserProfileId, history.SearchedAtUtc });
         });
 
         modelBuilder.Entity<FavoriteCity>(entity =>
@@ -61,13 +61,13 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.Property(favorite => favorite.CreatedAtUtc).HasDefaultValueSql("now()");
             entity.HasOne(favorite => favorite.User)
                 .WithMany(user => user.FavoriteCities)
-                .HasForeignKey(favorite => favorite.AppUserId)
+                .HasForeignKey(favorite => favorite.UserProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(favorite => favorite.City)
                 .WithMany(city => city.FavoriteCities)
                 .HasForeignKey(favorite => favorite.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(favorite => new { favorite.AppUserId, favorite.CityId }).IsUnique();
+            entity.HasIndex(favorite => new { favorite.UserProfileId, favorite.CityId }).IsUnique();
         });
 
         modelBuilder.Entity<WeatherStation>(entity =>
@@ -78,13 +78,13 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.Property(station => station.CreatedAtUtc).HasDefaultValueSql("now()");
             entity.HasOne(station => station.User)
                 .WithMany(user => user.WeatherStations)
-                .HasForeignKey(station => station.AppUserId)
+                .HasForeignKey(station => station.UserProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(station => station.City)
                 .WithMany(city => city.WeatherStations)
                 .HasForeignKey(station => station.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(station => new { station.AppUserId, station.Name }).IsUnique();
+            entity.HasIndex(station => new { station.UserProfileId, station.Name }).IsUnique();
         });
 
         modelBuilder.Entity<WeatherStationMeasurement>(entity =>
@@ -109,7 +109,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.Property(log => log.RequestedAtUtc).HasDefaultValueSql("now()");
             entity.HasOne(log => log.User)
                 .WithMany(user => user.WeatherRequestLogs)
-                .HasForeignKey(log => log.AppUserId)
+                .HasForeignKey(log => log.UserProfileId)
                 .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(log => log.City)
                 .WithMany(city => city.WeatherRequestLogs)

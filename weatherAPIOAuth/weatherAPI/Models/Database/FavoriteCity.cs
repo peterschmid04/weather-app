@@ -4,9 +4,9 @@ public class FavoriteCity
 {
     public Guid Id { get; set; }
 
-    public Guid AppUserId { get; set; }
+    public Guid UserProfileId { get; set; }
 
-    public AppUser User { get; set; } = null!;
+    public UserProfile User { get; set; } = null!;
 
     public Guid CityId { get; set; }
 

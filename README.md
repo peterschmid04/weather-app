@@ -181,7 +181,7 @@ The backend uses EF Core with Npgsql, the C# ORM equivalent to SQLAlchemy from t
 
 Tables:
 
-- `AppUsers`
+- `UserProfiles`
 - `Cities`
 - `SearchHistory`
 - `FavoriteCities`

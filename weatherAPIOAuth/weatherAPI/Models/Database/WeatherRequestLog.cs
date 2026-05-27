@@ -4,9 +4,9 @@ public class WeatherRequestLog
 {
     public Guid Id { get; set; }
 
-    public Guid? AppUserId { get; set; }
+    public Guid? UserProfileId { get; set; }
 
-    public AppUser? User { get; set; }
+    public UserProfile? User { get; set; }
 
     public Guid? CityId { get; set; }
 
