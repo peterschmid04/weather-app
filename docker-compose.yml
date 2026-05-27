@@ -1,0 +1,42 @@
+services:
+  backend:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    container_name: weather-app-api
+    working_dir: /workspace/weatherAPIOAuth/weatherAPI
+    command: sh -c "dotnet restore && dotnet run --no-restore --urls http://0.0.0.0:5122"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5122
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+    ports:
+      - "5122:5122"
+    volumes:
+      - .:/workspace
+      - weather_app_nuget:/root/.nuget/packages
+      - weather_app_backend_bin:/workspace/weatherAPIOAuth/weatherAPI/bin
+      - weather_app_backend_obj:/workspace/weatherAPIOAuth/weatherAPI/obj
+
+  frontend:
+    image: node:24
+    container_name: weather-app-frontend
+    working_dir: /workspace/weather-app
+    command: sh -c "npm ci && npm start"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      BROWSER: none
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/workspace
+      - weather_app_frontend_node_modules:/workspace/weather-app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  weather_app_nuget:
+  weather_app_backend_bin:
+  weather_app_backend_obj:
+  weather_app_frontend_node_modules:
