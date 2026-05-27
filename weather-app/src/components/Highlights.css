@@ -1,0 +1,72 @@
+.highlights-container {
+  grid-column: 2 / 5; /* Occupies columns 2 to 4 */
+  grid-row: 3 / 5; /* Occupies rows 3 and 4 */
+  /* Center container and add spacing */
+  padding: 20px;
+  display: flex;
+  text-align: left;
+  justify-content: space-around;
+  flex-direction: column;
+  align-items: center;
+  height: 550px;
+    
+  h2 {
+    align-self: flex-start;
+    margin-bottom: 20px;
+  }
+}
+
+/* Highlights grid layout */
+.highlights {
+  grid-column: 2 / 5; /* Occupies columns 2 to 4 */
+  grid-row: 3 / 5; /* Occupies rows 3 and 4 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  display: grid; /* Overwrites previous flex, only grid is used */
+  grid-template-columns: repeat(3, 1fr); /* 3 columns of equal width */
+  grid-template-rows: repeat(2, 1fr); /* 2 rows of equal height */
+  gap: 20px; 
+  width: 100%;
+  height: 100%;
+}
+
+.highlight-box {
+  background: #F7F7F7;
+  width: 100%;
+  height: 100%;
+  padding: 15px;
+  border-radius: 15px;
+  text-align: left;
+  align-content: center;
+
+  h3 {
+    font-size: 1.2rem;
+    color: hsl(0, 0%, 33%);
+  }
+  strong {
+    font-size: 3rem;
+    color: hsl(0, 0%, 0%);
+    padding-top: 15px;
+  }
+  p {
+    font-size: 1.2rem;
+    color: hsl(0, 0%, 33%);
+  }
+}
+
+/* Sunrise/Sunset container */
+.sunrise-sunset {
+  display: grid;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Sunrise/Sunset text styling */
+.sunrise-sunset p {
+  font-size: 2rem;
+  color: hsl(0, 0%, 0%);
+  display: flex;
+  align-content: center;
+  gap: 20px;
+}
