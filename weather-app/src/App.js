@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import Forecast from "./components/Forecast";
 import Highlights from "./components/Highlights";
@@ -8,7 +8,7 @@ import Stations from "./components/Stations";
 import UserDataPanel from "./components/UserDataPanel";
 import { getWeatherImage, getWeatherIcons } from "./utils/weatherUtils";
 import { getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality } from "./utils/statusUtils";
-import { formatCityLocation, getGermanCityName } from "./utils/localizationUtils";
+import { formatCityLocation } from "./utils/localizationUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const API_BASE = "http://localhost:5122";
@@ -36,6 +36,7 @@ export default function WeatherApp() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [favoritesRefreshKey, setFavoritesRefreshKey] = useState(0);
   const [themeName, setThemeName] = useState("graphite");
+  const activeWeatherRequestRef = useRef(0);
   const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
 
   const timezoneOffsetFormatted = timezoneOffset >= 0 ? `+${timezoneOffset}` : timezoneOffset;
@@ -96,8 +97,16 @@ export default function WeatherApp() {
 
   const fetchWeatherData = useCallback(
     async (nextCity) => {
+      const requestId = activeWeatherRequestRef.current + 1;
+      activeWeatherRequestRef.current = requestId;
+      const isCurrentRequest = () => activeWeatherRequestRef.current === requestId;
+
       try {
         const data = await authFetchJson(`${API_BASE}/weather?city=${encodeURIComponent(nextCity)}`);
+        if (!isCurrentRequest()) {
+          return;
+        }
+
         if (!data) {
           throw new Error("No weather data found.");
         }
@@ -117,13 +126,24 @@ export default function WeatherApp() {
         });
 
         setCity(data.city);
-        setInputCity(getGermanCityName(data.city));
         setError("");
         setHistoryRefreshKey((current) => current + 1);
 
-        const uvData = await authFetchJson(`${API_BASE}/uv?lat=${data.lat}&lon=${data.lon}`);
-        const airQualityData = await authFetchJson(`${API_BASE}/airquality?lat=${data.lat}&lon=${data.lon}`);
-        const forecast = await authFetchJson(`${API_BASE}/forecast?lat=${data.lat}&lon=${data.lon}`);
+        const [uvResult, airQualityResult, forecastResult] = await Promise.allSettled([
+          authFetchJson(`${API_BASE}/uv?lat=${data.lat}&lon=${data.lon}`),
+          authFetchJson(`${API_BASE}/airquality?lat=${data.lat}&lon=${data.lon}`),
+          authFetchJson(`${API_BASE}/forecast?lat=${data.lat}&lon=${data.lon}`),
+        ]);
+
+        if (!isCurrentRequest()) {
+          return;
+        }
+
+        const uvData = uvResult.status === "fulfilled" ? uvResult.value : null;
+        const airQualityData = airQualityResult.status === "fulfilled" ? airQualityResult.value : null;
+        const forecast = forecastResult.status === "fulfilled" && Array.isArray(forecastResult.value)
+          ? forecastResult.value
+          : [];
 
         setForecastData(
           forecast.slice(0, 6).map((day) => ({
@@ -135,35 +155,29 @@ export default function WeatherApp() {
           }))
         );
 
-        setHighlights([
-          { title: "UV-Index", value: uvData.uvIndex, unit: "" },
-          {
-            title: "Wind",
-            value: data.windSpeed,
-            unit: "km/h",
-            status: getStatusWind(data.windSpeed),
-          },
+        const nextHighlights = [
+          ...(typeof uvData?.uvIndex === "number" ? [{ title: "UV-Index", value: uvData.uvIndex, unit: "" }] : []),
+          { title: "Wind", value: data.windSpeed, unit: "km/h", status: getStatusWind(data.windSpeed) },
           { title: "Sonnenaufgang & Sonnenuntergang", up: `${data.sunrise}`, down: `${data.sunset}` },
-          {
-            title: "Luftfeuchtigkeit",
-            value: data.humidity,
-            unit: "%",
-            status: getStatusHumidity(data.humidity),
-          },
-          {
-            title: "Sichtweite",
-            value: data.visibilityKm,
-            unit: "km",
-            status: getStatusVisibility(data.visibilityKm),
-          },
-          {
+          { title: "Luftfeuchtigkeit", value: data.humidity, unit: "%", status: getStatusHumidity(data.humidity) },
+          { title: "Sichtweite", value: data.visibilityKm, unit: "km", status: getStatusVisibility(data.visibilityKm) },
+        ];
+
+        if (typeof airQualityData?.aqi === "number") {
+          nextHighlights.push({
             title: "Luftqualität",
             value: airQualityData.aqi,
             unit: "",
             status: getStatusAirquality(airQualityData.aqi),
-          },
-        ]);
+          });
+        }
+
+        setHighlights(nextHighlights);
       } catch (err) {
+        if (!isCurrentRequest()) {
+          return;
+        }
+
         setWeather(null);
         setHighlights([]);
         setForecastData([]);
@@ -194,7 +208,7 @@ export default function WeatherApp() {
           }
         }
 
-        setError("Netzwerkfehler oder unerwarteter Fehler. Starte die Suche bitte mit Enter erneut oder lade die Seite neu.");
+        setError("Die Verbindung zum Backend oder Internet ist gerade nicht erreichbar. Bitte prüfe Docker, WLAN oder Netzwerk und versuche es danach erneut.");
       }
     },
     [authFetchJson]

@@ -248,8 +248,8 @@ export default function UserDataPanel({
             {history.length === 0 && <p className="empty">Noch keine Suche gespeichert.</p>}
             {history.map((item) => (
               <article key={item.id}>
-                <button type="button" onClick={() => loadCity(item.cityName)}>
-                  {formatCityLocation(item.cityName, item.countryCode)}
+                <button type="button" onClick={() => loadCity(item.queryText || item.cityName)}>
+                  {formatCityLocation(item.queryText || item.cityName, item.countryCode)}
                 </button>
                 <small>{new Date(item.searchedAtUtc).toLocaleString("de-DE")}</small>
                 <button type="button" className="quiet" onClick={() => deleteHistory(item.id)}>
