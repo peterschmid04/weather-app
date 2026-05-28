@@ -8,6 +8,7 @@ import Stations from "./components/Stations";
 import UserDataPanel from "./components/UserDataPanel";
 import { getWeatherImage, getWeatherIcons } from "./utils/weatherUtils";
 import { getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality } from "./utils/statusUtils";
+import { formatCityLocation, getGermanCityName } from "./utils/localizationUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const API_BASE = "http://localhost:5122";
@@ -116,6 +117,7 @@ export default function WeatherApp() {
         });
 
         setCity(data.city);
+        setInputCity(getGermanCityName(data.city));
         setError("");
         setHistoryRefreshKey((current) => current + 1);
 
@@ -231,11 +233,6 @@ export default function WeatherApp() {
     }
   }, []);
 
-  const getCountryFlagEmoji = (countryCode) =>
-    countryCode
-      .toUpperCase()
-      .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt()));
-
   useEffect(() => {
     if (!isAuthenticated) {
       return;
@@ -273,13 +270,14 @@ export default function WeatherApp() {
         historyRefreshKey={historyRefreshKey}
         favoritesRefreshKey={favoritesRefreshKey}
         onSelectCity={loadCityFromSavedItem}
+        onHistoryChanged={() => setHistoryRefreshKey((current) => current + 1)}
       />
 
       {weather && (
         <>
           <div className="header">
             <span className="location-title">
-              {city}, {getCountryFlagEmoji(country)} UTC{timezoneOffsetFormatted}
+              {formatCityLocation(city, country)} UTC{timezoneOffsetFormatted}
             </span>
             <div className="header-actions">
               <div className="toggle-buttons">

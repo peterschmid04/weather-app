@@ -51,6 +51,32 @@ const weatherDescriptionMap = {
   tornado: "Tornado",
 };
 
+const cityNameMap = {
+  vienna: "Wien",
+  munich: "München",
+  cologne: "Köln",
+  nuremberg: "Nürnberg",
+  zurich: "Zürich",
+  geneva: "Genf",
+  basel: "Basel",
+  prague: "Prag",
+  brussels: "Brüssel",
+  copenhagen: "Kopenhagen",
+  warsaw: "Warschau",
+  cracow: "Krakau",
+  krakow: "Krakau",
+  milan: "Mailand",
+  venice: "Venedig",
+  rome: "Rom",
+  florence: "Florenz",
+  naples: "Neapel",
+  turin: "Turin",
+  genoa: "Genua",
+  lisbon: "Lissabon",
+  athens: "Athen",
+  moscow: "Moskau",
+};
+
 export const translateWeekday = (value) => weekdayMap[value] || value;
 
 export const translateWeatherDescription = (value) => {
@@ -59,4 +85,19 @@ export const translateWeatherDescription = (value) => {
   }
 
   return weatherDescriptionMap[value.toLowerCase()] || value;
+};
+
+export const getGermanCityName = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const trimmedValue = value.trim();
+  return cityNameMap[trimmedValue.toLocaleLowerCase("de-DE")] || trimmedValue;
+};
+
+export const formatCityLocation = (cityName, countryCode) => {
+  const city = getGermanCityName(cityName);
+  const country = (countryCode || "").toString().trim().toUpperCase();
+  return country ? `${city}, ${country}` : city;
 };

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Stations.css";
+import { formatCityLocation } from "../utils/localizationUtils";
 
 const emptyStation = {
   name: "",
@@ -197,7 +198,7 @@ export default function Stations({ authFetchJson }) {
             <article key={station.id} className={station.id === selectedStationId ? "active" : ""}>
               <button type="button" className="station-select" onClick={() => setSelectedStationId(station.id)}>
                 <strong>{station.name}</strong>
-                <span>{station.cityName}, {station.countryCode}</span>
+                <span>{formatCityLocation(station.cityName, station.countryCode)}</span>
                 {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} °C</small>}
               </button>
               <div className="station-actions">
