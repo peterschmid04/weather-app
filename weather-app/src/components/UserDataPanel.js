@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import "./UserDataPanel.css";
+import { formatCityLocation } from "../utils/localizationUtils";
 
 const emptyFavorite = {
   cityName: "",
@@ -248,7 +249,7 @@ export default function UserDataPanel({
             {history.map((item) => (
               <article key={item.id}>
                 <button type="button" onClick={() => loadCity(item.cityName)}>
-                  {item.cityName}, {item.countryCode}
+                  {formatCityLocation(item.cityName, item.countryCode)}
                 </button>
                 <small>{new Date(item.searchedAtUtc).toLocaleString("de-DE")}</small>
                 <button type="button" className="quiet" onClick={() => deleteHistory(item.id)}>
@@ -287,7 +288,7 @@ export default function UserDataPanel({
             {favorites.map((favorite) => (
               <article key={favorite.id}>
                 <button type="button" onClick={() => loadCity(favorite.cityName)}>
-                  {favorite.cityName}, {favorite.countryCode}
+                  {formatCityLocation(favorite.cityName, favorite.countryCode)}
                 </button>
                 <div className="row-actions">
                   <button type="button" className="quiet" onClick={() => editFavorite(favorite)}>

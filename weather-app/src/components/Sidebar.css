@@ -15,9 +15,9 @@
 
 .search-area {
   width: min(360px, 100%);
-  margin: 30px 30px 24px;
+  margin: 20px 30px 10px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
   
 .cityInput {
@@ -46,7 +46,7 @@
 
 .quick-search-panel {
   width: 100%;
-  padding: 10px;
+  padding: 9px;
   background: var(--surface-strong);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -57,7 +57,7 @@
 
 .quick-section {
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .quick-section-title {
@@ -71,7 +71,7 @@
 
 .quick-item {
   min-height: 34px;
-  padding: 7px 10px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
@@ -83,7 +83,27 @@
   cursor: pointer;
 }
 
-.quick-item:hover {
+.quick-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.quick-delete {
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quick-item:hover,
+.quick-delete:hover {
   border-color: var(--accent);
   background: var(--button-bg);
 }
@@ -95,32 +115,41 @@
 
 .quick-favorites-card {
   width: 100%;
-  padding: 10px;
+  padding: 9px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--line);
   border-radius: 12px;
   display: grid;
-  gap: 7px;
+  gap: 6px;
+}
+
+.sidebar-weather {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
   
 .sidebar .image {
-  padding-top: 6px;
-  width: 80%;
-  height: 80%;
+  padding-top: 0;
+  width: min(78%, 340px);
+  height: auto;
   object-fit: fill; /* Stretch image to fill container */
 }
   
 .temp {
-  padding-top: 50px;
+  padding-top: 18px;
   padding-left: 30px;
+  align-self: stretch;
   font-size: 4rem; /* Large temperature text */
   white-space: normal;
 }
   
 .date {
   display: flex;
-  padding-top: 20px;
+  padding-top: 14px;
   padding-left: 25px;
+  align-self: stretch;
   font-size: 1.5rem;
   white-space: normal;
 }
@@ -132,8 +161,9 @@
   
 .description {
   display: flex;
-  padding-top: 15px;
+  padding-top: 10px;
   padding-left: 25px;
+  align-self: stretch;
   font-size: 1.5rem;
 }
   

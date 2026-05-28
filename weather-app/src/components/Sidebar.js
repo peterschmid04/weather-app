@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import "./Sidebar.css";
-import { translateWeatherDescription } from "../utils/localizationUtils";
+import { formatCityLocation, translateWeatherDescription } from "../utils/localizationUtils";
 
 const convertTemperature = (temp, isCelsius) => isCelsius ? temp : ((temp * 9 / 5) + 32).toFixed(1);
 
@@ -17,6 +17,7 @@ export default function Sidebar({
   historyRefreshKey,
   favoritesRefreshKey,
   onSelectCity,
+  onHistoryChanged,
 }) {
   const [showSavedItems, setShowSavedItems] = useState(false);
   const [quickHistory, setQuickHistory] = useState([]);
@@ -48,7 +49,18 @@ export default function Sidebar({
 
   const selectCity = (nextCity) => {
     setShowSavedItems(false);
-    onSelectCity(nextCity);
+    onSelectCity?.(nextCity);
+  };
+
+  const deleteHistory = async (historyId) => {
+    setQuickHistory((current) => current.filter((item) => item.id !== historyId));
+
+    try {
+      await authFetchJson(`http://localhost:5122/history/${historyId}`, { method: "DELETE" });
+      onHistoryChanged?.();
+    } catch (_) {
+      loadSavedItems();
+    }
   };
 
   return (
@@ -74,9 +86,14 @@ export default function Sidebar({
               <p className="quick-section-title">Letzte Suchen</p>
               {quickHistory.length === 0 && <span className="quick-empty">Noch kein Verlauf</span>}
               {quickHistory.map((item) => (
-                <button key={item.id} type="button" className="quick-item" onClick={() => selectCity(item.cityName)}>
-                  {item.cityName}, {item.countryCode}
-                </button>
+                <div key={item.id} className="quick-history-row">
+                  <button type="button" className="quick-item" onClick={() => selectCity(item.cityName)}>
+                    {formatCityLocation(item.cityName, item.countryCode)}
+                  </button>
+                  <button type="button" className="quick-delete" onClick={() => deleteHistory(item.id)}>
+                    Löschen
+                  </button>
+                </div>
               ))}
             </div>
           </div>
@@ -87,7 +104,7 @@ export default function Sidebar({
           {quickFavorites.length === 0 && <span className="quick-empty">Noch keine Favoriten</span>}
           {quickFavorites.map((favorite) => (
             <button key={favorite.id} type="button" className="quick-item" onClick={() => selectCity(favorite.cityName)}>
-              {favorite.cityName}, {favorite.countryCode}
+              {formatCityLocation(favorite.cityName, favorite.countryCode)}
             </button>
           ))}
         </div>
