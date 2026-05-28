@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./Sidebar.css";
-import { formatCityLocation, translateWeatherDescription } from "../utils/localizationUtils";
+import { formatCityLocation, getCitySuggestions, translateWeatherDescription } from "../utils/localizationUtils";
+import { buildApiUrl } from "../utils/apiUtils";
 
 const convertTemperature = (temp, isCelsius) => isCelsius ? temp : ((temp * 9 / 5) + 32).toFixed(1);
 
@@ -23,6 +24,7 @@ export default function Sidebar({
   const [quickHistory, setQuickHistory] = useState([]);
   const [quickFavorites, setQuickFavorites] = useState([]);
   const description = translateWeatherDescription(weather?.description);
+  const citySuggestions = useMemo(() => getCitySuggestions(city), [city]);
 
   const loadSavedItems = useCallback(async () => {
     if (!authFetchJson) {
@@ -30,8 +32,8 @@ export default function Sidebar({
     }
 
     const [historyResult, favoritesResult] = await Promise.allSettled([
-      authFetchJson("http://localhost:5122/history/"),
-      authFetchJson("http://localhost:5122/favorites/"),
+      authFetchJson(buildApiUrl("/history/")),
+      authFetchJson(buildApiUrl("/favorites/")),
     ]);
 
     if (historyResult.status === "fulfilled") {
@@ -47,16 +49,16 @@ export default function Sidebar({
     loadSavedItems();
   }, [loadSavedItems, historyRefreshKey, favoritesRefreshKey]);
 
-  const selectCity = (nextCity) => {
+  const selectCity = (nextCity, displayCity = nextCity) => {
     setShowSavedItems(false);
-    onSelectCity?.(nextCity);
+    onSelectCity?.(nextCity, displayCity);
   };
 
   const deleteHistory = async (historyId) => {
     setQuickHistory((current) => current.filter((item) => item.id !== historyId));
 
     try {
-      await authFetchJson(`http://localhost:5122/history/${historyId}`, { method: "DELETE" });
+      await authFetchJson(buildApiUrl(`/history/${historyId}`), { method: "DELETE" });
       onHistoryChanged?.();
     } catch (_) {
       loadSavedItems();
@@ -82,6 +84,22 @@ export default function Sidebar({
 
         {showSavedItems && (
           <div className="quick-search-panel" onMouseDown={(event) => event.preventDefault()}>
+            {citySuggestions.length > 0 && (
+              <div className="quick-section">
+                <p className="quick-section-title">Vorschläge</p>
+                {citySuggestions.map((suggestion) => (
+                  <button
+                    key={`${suggestion.cityName}-${suggestion.countryCode}`}
+                    type="button"
+                    className="quick-item"
+                    onClick={() => selectCity(suggestion.query, suggestion.cityName)}
+                  >
+                    {formatCityLocation(suggestion.cityName, suggestion.countryCode)}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="quick-section">
               <p className="quick-section-title">Letzte Suchen</p>
               {quickHistory.length === 0 && <span className="quick-empty">Noch kein Verlauf</span>}

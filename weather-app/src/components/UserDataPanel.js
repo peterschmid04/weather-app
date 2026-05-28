@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import "./UserDataPanel.css";
 import { formatCityLocation } from "../utils/localizationUtils";
+import { buildApiUrl } from "../utils/apiUtils";
 
 const emptyFavorite = {
   cityName: "",
@@ -59,12 +60,12 @@ export default function UserDataPanel({
   const [message, setMessage] = useState("");
 
   const loadHistory = useCallback(async () => {
-    const data = await authFetchJson("http://localhost:5122/history/");
+    const data = await authFetchJson(buildApiUrl("/history/"));
     setHistory(Array.isArray(data) ? data.slice(0, 3) : []);
   }, [authFetchJson]);
 
   const loadFavorites = useCallback(async () => {
-    const data = await authFetchJson("http://localhost:5122/favorites/");
+    const data = await authFetchJson(buildApiUrl("/favorites/"));
     setFavorites(Array.isArray(data) ? data : []);
   }, [authFetchJson]);
 
@@ -91,7 +92,7 @@ export default function UserDataPanel({
     }
 
     try {
-      await authFetchJson("http://localhost:5122/favorites/", {
+      await authFetchJson(buildApiUrl("/favorites/"), {
         method: "POST",
         body: JSON.stringify({
           cityName: currentWeather.city,
@@ -131,8 +132,8 @@ export default function UserDataPanel({
     }
 
     const url = editingFavoriteId
-      ? `http://localhost:5122/favorites/${editingFavoriteId}`
-      : "http://localhost:5122/favorites/";
+      ? buildApiUrl(`/favorites/${editingFavoriteId}`)
+      : buildApiUrl("/favorites/");
 
     try {
       await authFetchJson(url, {
@@ -163,7 +164,7 @@ export default function UserDataPanel({
     setFavorites((current) => current.filter((favorite) => favorite.id !== favoriteId));
 
     try {
-      await authFetchJson(`http://localhost:5122/favorites/${favoriteId}`, { method: "DELETE" });
+      await authFetchJson(buildApiUrl(`/favorites/${favoriteId}`), { method: "DELETE" });
       await loadFavorites().catch(() => {});
       onFavoritesChanged?.();
       setMessage("Favorit gelöscht.");
@@ -180,7 +181,7 @@ export default function UserDataPanel({
     setHistory((current) => current.filter((item) => item.id !== historyId));
 
     try {
-      await authFetchJson(`http://localhost:5122/history/${historyId}`, { method: "DELETE" });
+      await authFetchJson(buildApiUrl(`/history/${historyId}`), { method: "DELETE" });
       await loadHistory().catch(() => {});
       onHistoryChanged?.();
       setMessage("Verlaufseintrag gelöscht.");
@@ -201,7 +202,7 @@ export default function UserDataPanel({
     onThemeChange(nextTheme);
 
     try {
-      const data = await authFetchJson("http://localhost:5122/theme/", {
+      const data = await authFetchJson(buildApiUrl("/theme/"), {
         method: "PUT",
         body: JSON.stringify({ themeName: nextTheme }),
       });

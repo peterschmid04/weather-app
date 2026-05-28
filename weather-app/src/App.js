@@ -9,9 +9,8 @@ import UserDataPanel from "./components/UserDataPanel";
 import { getWeatherImage, getWeatherIcons } from "./utils/weatherUtils";
 import { getStatusWind, getStatusVisibility, getStatusHumidity, getStatusAirquality } from "./utils/statusUtils";
 import { formatCityLocation } from "./utils/localizationUtils";
+import { buildApiUrl } from "./utils/apiUtils";
 import { useAuth0 } from "@auth0/auth0-react";
-
-const API_BASE = "http://localhost:5122";
 
 class HttpError extends Error {
   constructor(status, message, body) {
@@ -102,7 +101,7 @@ export default function WeatherApp() {
       const isCurrentRequest = () => activeWeatherRequestRef.current === requestId;
 
       try {
-        const data = await authFetchJson(`${API_BASE}/weather?city=${encodeURIComponent(nextCity)}`);
+        const data = await authFetchJson(buildApiUrl(`/weather?city=${encodeURIComponent(nextCity)}`));
         if (!isCurrentRequest()) {
           return;
         }
@@ -130,9 +129,9 @@ export default function WeatherApp() {
         setHistoryRefreshKey((current) => current + 1);
 
         const [uvResult, airQualityResult, forecastResult] = await Promise.allSettled([
-          authFetchJson(`${API_BASE}/uv?lat=${data.lat}&lon=${data.lon}`),
-          authFetchJson(`${API_BASE}/airquality?lat=${data.lat}&lon=${data.lon}`),
-          authFetchJson(`${API_BASE}/forecast?lat=${data.lat}&lon=${data.lon}`),
+          authFetchJson(buildApiUrl(`/uv?lat=${data.lat}&lon=${data.lon}`)),
+          authFetchJson(buildApiUrl(`/airquality?lat=${data.lat}&lon=${data.lon}`)),
+          authFetchJson(buildApiUrl(`/forecast?lat=${data.lat}&lon=${data.lon}`)),
         ]);
 
         if (!isCurrentRequest()) {
@@ -208,7 +207,7 @@ export default function WeatherApp() {
           }
         }
 
-        setError("Die Verbindung zum Backend oder Internet ist gerade nicht erreichbar. Bitte prüfe Docker, WLAN oder Netzwerk und versuche es danach erneut.");
+        setError("Die Verbindung zum Backend oder Internet ist gerade nicht erreichbar. Bitte prüfe WLAN oder Netzwerk und versuche es danach erneut.");
       }
     },
     [authFetchJson]
@@ -232,8 +231,8 @@ export default function WeatherApp() {
   };
 
   const loadCityFromSavedItem = useCallback(
-    (nextCity) => {
-      setInputCity(nextCity);
+    (nextCity, displayCity = nextCity) => {
+      setInputCity(displayCity);
       setSearchMessage("");
       fetchWeatherData(nextCity);
     },
@@ -260,7 +259,7 @@ export default function WeatherApp() {
       return;
     }
 
-    authFetchJson(`${API_BASE}/theme/`)
+    authFetchJson(buildApiUrl("/theme/"))
       .then((data) => setThemeName(data.themeName || "graphite"))
       .catch(() => setThemeName("graphite"));
   }, [isAuthenticated, authFetchJson]);

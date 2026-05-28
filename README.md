@@ -396,6 +396,8 @@ ngrok leitet dann auf den Frontend-Service im Docker-Netzwerk weiter:
 https://relaxed-yak-pleasantly.ngrok-free.app -> frontend:3000
 ```
 
+API-Aufrufe laufen im Browser relativ zur aktuellen Seite, also zum Beispiel `/weather` statt `http://localhost:5122/weather`. Der React-Dev-Server leitet diese Requests im Docker-Netzwerk an `backend:5122` weiter. Dadurch funktioniert die Suche auch, wenn jemand die App extern über die ngrok-URL öffnet. `REACT_APP_API_BASE_URL` deshalb für Docker/ngrok leer lassen.
+
 Die ngrok Inspector UI ist erreichbar unter:
 
 ```text
