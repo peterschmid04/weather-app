@@ -28,11 +28,19 @@
 
 .login-actions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .login-provider-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.login-separator {
+  margin: 0 0 14px;
+  color: #4b5563;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .login-actions button,

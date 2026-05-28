@@ -42,6 +42,7 @@ export default function LoginOptions({ loginWithRedirect }) {
             Registrieren
           </button>
         </div>
+        <p className="login-separator">oder anmelden mit</p>
         <div className="login-provider-grid">
           {authConnections.map((provider) => {
             const connection = process.env[provider.envKey];

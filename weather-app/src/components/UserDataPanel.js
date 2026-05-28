@@ -48,6 +48,8 @@ export default function UserDataPanel({
   onSelectCity,
   themeName,
   onThemeChange,
+  onHistoryChanged,
+  onFavoritesChanged,
 }) {
   const [history, setHistory] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -98,6 +100,7 @@ export default function UserDataPanel({
         }),
       });
       await loadFavorites();
+      onFavoritesChanged?.();
       setMessage("Aktuelle Stadt als Favorit gespeichert.");
     } catch (error) {
       setMessage(getFriendlyErrorMessage(error, "Favorit konnte nicht gespeichert werden. Bitte versuche es erneut."));
@@ -139,6 +142,7 @@ export default function UserDataPanel({
       setFavoriteForm(emptyFavorite);
       setEditingFavoriteId("");
       await loadFavorites();
+      onFavoritesChanged?.();
       setMessage(editingFavoriteId ? "Favorit aktualisiert." : "Favorit gespeichert.");
     } catch (error) {
       setMessage(getFriendlyErrorMessage(error, "Favorit konnte nicht gespeichert werden. Bitte prüfe die Eingabe."));
@@ -160,6 +164,7 @@ export default function UserDataPanel({
     try {
       await authFetchJson(`http://localhost:5122/favorites/${favoriteId}`, { method: "DELETE" });
       await loadFavorites().catch(() => {});
+      onFavoritesChanged?.();
       setMessage("Favorit gelöscht.");
     } catch (error) {
       if (error?.status !== 404) {
@@ -176,6 +181,7 @@ export default function UserDataPanel({
     try {
       await authFetchJson(`http://localhost:5122/history/${historyId}`, { method: "DELETE" });
       await loadHistory().catch(() => {});
+      onHistoryChanged?.();
       setMessage("Verlaufseintrag gelöscht.");
     } catch (error) {
       if (error?.status !== 404) {
