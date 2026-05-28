@@ -398,6 +398,8 @@ https://relaxed-yak-pleasantly.ngrok-free.app -> frontend:3000
 
 API-Aufrufe laufen im Browser relativ zur aktuellen Seite, also zum Beispiel `/weather` statt `http://localhost:5122/weather`. Der React-Dev-Server leitet diese Requests im Docker-Netzwerk an `backend:5122` weiter. Dadurch funktioniert die Suche auch, wenn jemand die App extern über die ngrok-URL öffnet. `REACT_APP_API_BASE_URL` deshalb für Docker/ngrok leer lassen.
 
+Der Frontend-Container setzt für den lokalen React-Dev-Server `DANGEROUSLY_DISABLE_HOST_CHECK=true`, weil ngrok mit einem öffentlichen Hostnamen auf die App zugreift. Ohne diese Dev-Option antwortet Create React App mit `Invalid Host header`.
+
 Die ngrok Inspector UI ist erreichbar unter:
 
 ```text
