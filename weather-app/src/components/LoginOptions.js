@@ -33,10 +33,10 @@ export default function LoginOptions({ loginWithRedirect }) {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <h1>Weather Dashboard</h1>
+        <h1>Wetter-Dashboard</h1>
         <div className="login-actions">
           <button type="button" onClick={() => loginUniversal()}>
-            Login
+            Anmelden
           </button>
           <button type="button" onClick={() => loginUniversal("signup")}>
             Registrieren

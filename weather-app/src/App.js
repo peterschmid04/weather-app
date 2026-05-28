@@ -22,13 +22,14 @@ class HttpError extends Error {
 }
 
 export default function WeatherApp() {
-  const [inputCity, setInputCity] = useState("Lossburg");
-  const [city, setCity] = useState("Lossburg");
+  const [inputCity, setInputCity] = useState("Loßburg");
+  const [city, setCity] = useState("Loßburg");
   const [weather, setWeather] = useState(null);
   const [country, setCountry] = useState("");
   const [highlights, setHighlights] = useState([]);
   const [forecastData, setForecastData] = useState([]);
   const [error, setError] = useState("");
+  const [searchMessage, setSearchMessage] = useState("");
   const [timezoneOffset, setTimezoneOffset] = useState(0);
   const [isCelsius, setIsCelsius] = useState(true);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
@@ -49,7 +50,7 @@ export default function WeatherApp() {
 
   const getCurrentDay = () => {
     const now = new Date();
-    return now.toLocaleDateString("en-En", { weekday: "long" });
+    return now.toLocaleDateString("de-DE", { weekday: "long" });
   };
 
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
@@ -132,28 +133,28 @@ export default function WeatherApp() {
         );
 
         setHighlights([
-          { title: "UV Index", value: uvData.uvIndex, unit: "" },
+          { title: "UV-Index", value: uvData.uvIndex, unit: "" },
           {
-            title: "Wind Status",
+            title: "Wind",
             value: data.windSpeed,
             unit: "km/h",
             status: getStatusWind(data.windSpeed),
           },
-          { title: "Sunrise & Sunset", up: `${data.sunrise}`, down: `${data.sunset}` },
+          { title: "Sonnenaufgang & Sonnenuntergang", up: `${data.sunrise}`, down: `${data.sunset}` },
           {
-            title: "Humidity",
+            title: "Luftfeuchtigkeit",
             value: data.humidity,
             unit: "%",
             status: getStatusHumidity(data.humidity),
           },
           {
-            title: "Visibility",
+            title: "Sichtweite",
             value: data.visibilityKm,
             unit: "km",
             status: getStatusVisibility(data.visibilityKm),
           },
           {
-            title: "Air Quality",
+            title: "Luftqualität",
             value: airQualityData.aqi,
             unit: "",
             status: getStatusAirquality(airQualityData.aqi),
@@ -170,7 +171,7 @@ export default function WeatherApp() {
               setError("Nicht eingeloggt oder Sitzung abgelaufen. Bitte erneut anmelden.");
               return;
             case 403:
-              setError("Keine Berechtigung fuer diese Region.");
+              setError("Keine Berechtigung für diese Region.");
               return;
             case 404:
               setError("Stadt wurde nicht gefunden.");
@@ -182,7 +183,7 @@ export default function WeatherApp() {
               setError("Zu viele Anfragen. Bitte kurz warten.");
               return;
             case 500:
-              setError("Serverfehler. Bitte spaeter erneut versuchen.");
+              setError("Serverfehler. Bitte später erneut versuchen.");
               return;
             default:
               setError(`Fehler (${err.status}): ${err.message}`);
@@ -190,7 +191,7 @@ export default function WeatherApp() {
           }
         }
 
-        setError("Netzwerkfehler oder unerwarteter Fehler.");
+        setError("Netzwerkfehler oder unerwarteter Fehler. Starte die Suche bitte mit Enter erneut oder lade die Seite neu.");
       }
     },
     [authFetchJson]
@@ -206,19 +207,28 @@ export default function WeatherApp() {
   const handleSubmit = (event) => {
     event.preventDefault();
     if (inputCity.trim()) {
+      setSearchMessage("");
       fetchWeatherData(inputCity.trim());
     } else {
-      setError("Bitte eine Stadt eingeben.");
+      setSearchMessage("Bitte eine Stadt eingeben.");
     }
   };
 
   const loadCityFromSavedItem = useCallback(
     (nextCity) => {
       setInputCity(nextCity);
+      setSearchMessage("");
       fetchWeatherData(nextCity);
     },
     [fetchWeatherData]
   );
+
+  const updateInputCity = useCallback((nextCity) => {
+    setInputCity(nextCity);
+    if (nextCity.trim()) {
+      setSearchMessage("");
+    }
+  }, []);
 
   const getCountryFlagEmoji = (countryCode) =>
     countryCode
@@ -230,7 +240,7 @@ export default function WeatherApp() {
       return;
     }
 
-    fetchWeatherData("Lossburg");
+    fetchWeatherData("Loßburg");
   }, [isAuthenticated, fetchWeatherData]);
 
   useEffect(() => {
@@ -251,12 +261,13 @@ export default function WeatherApp() {
     <div className={`weather-grid theme-${themeName}`}>
       <Sidebar
         city={inputCity}
-        setCity={setInputCity}
+        setCity={updateInputCity}
         handleSubmit={handleSubmit}
         weather={weather}
         currentDay={currentDay}
         currentTime={currentTime}
         isCelsius={isCelsius}
+        searchMessage={searchMessage}
       />
 
       {weather && (
@@ -275,7 +286,7 @@ export default function WeatherApp() {
                 </button>
               </div>
               <button className="logout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
-                Logout
+                Abmelden
               </button>
             </div>
           </div>
@@ -299,7 +310,7 @@ export default function WeatherApp() {
 
       {!weather && (
         <button className="errorLogout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
-          Logout
+          Abmelden
         </button>
       )}
     </div>

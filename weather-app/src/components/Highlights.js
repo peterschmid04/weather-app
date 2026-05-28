@@ -8,7 +8,7 @@ export default function Highlights({ highlights }) {
     // Render the highlights section with today's weather highlights
     return (
         <div className="highlights-container">
-            <h2>Today's Highlights</h2>
+            <h2>Heutige Highlights</h2>
             <div className="highlights">
                 {/* Map through the highlights array and render each highlight */}
                 {highlights && highlights.map((item, index) => (
@@ -16,12 +16,12 @@ export default function Highlights({ highlights }) {
                         <h3>{item.title}</h3>
 
                         {/* Render sunrise and sunset times if the title matches */}
-                        {item.title === "Sunrise & Sunset" ? (
+                        {item.title === "Sonnenaufgang & Sonnenuntergang" ? (
                             <div className="sunrise-sunset">
-                                <p><img src={iconSunrise} alt="Sunrise" /> {item.up}</p>
-                                <p><img src={iconSunset} alt="Sunset" /> {item.down}</p>
+                                <p><img src={iconSunrise} alt="Sonnenaufgang" /> {item.up}</p>
+                                <p><img src={iconSunset} alt="Sonnenuntergang" /> {item.down}</p>
                             </div>
-                        ) : item.title === "UV Index" ? (
+                        ) : item.title === "UV-Index" ? (
                             // Render the UVIndex component for UV Index highlight
                             <UVIndex value={item.value} />
                         ) : (
