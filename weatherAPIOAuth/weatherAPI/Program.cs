@@ -12,8 +12,25 @@ using weatherAPI.Data;
 using weatherAPI.Models.Database;
 using weatherAPI.Models.Dto;
 using weatherAPI.Security;
+using weatherAPI.Logging;
 
 var builder = WebApplication.CreateBuilder(args);   
+static bool IsTrue(string? value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+
+var detailedLogsEnabled = IsTrue(builder.Configuration["LOGS"]) || IsTrue(builder.Configuration["ENABLE_DETAILED_LOGS"]);
+if (detailedLogsEnabled)
+{
+    var logDirectory = builder.Configuration["LOG_DIRECTORY"];
+    if (string.IsNullOrWhiteSpace(logDirectory))
+    {
+        logDirectory = Path.Combine(builder.Environment.ContentRootPath, "logs");
+    }
+
+    var logFile = Path.Combine(logDirectory, $"weather-api-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
+    builder.Logging.SetMinimumLevel(LogLevel.Trace);
+    builder.Logging.AddProvider(new DetailedFileLoggerProvider(logFile));
+}
+
 // Add services
 var databaseConnectionString = builder.Configuration.GetConnectionString("WeatherDatabase")
     ?? throw new InvalidOperationException("Connection string 'WeatherDatabase' is missing. Configure ConnectionStrings__WeatherDatabase.");

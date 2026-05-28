@@ -12,6 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - weather_app_postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
@@ -50,6 +51,9 @@ services:
       Auth0__Audience: ${AUTH0_AUDIENCE}
       Auth0__ClientId: ${AUTH0_CLIENT_ID}
       OpenWeatherMap__ApiKey: ${OPENWEATHERMAP_API_KEY}
+      LOGS: ${LOGS:-false}
+      ENABLE_DETAILED_LOGS: ${ENABLE_DETAILED_LOGS:-false}
+      LOG_DIRECTORY: ${LOG_DIRECTORY:-/workspace/logs}
       DOTNET_USE_POLLING_FILE_WATCHER: "1"
     ports:
       - "5122:5122"
@@ -93,6 +97,25 @@ services:
       - weather_app_frontend_node_modules:/workspace/weather-app/node_modules
     depends_on:
       backend:
+        condition: service_started
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: weather-app-ngrok
+    profiles:
+      - ngrok
+    env_file:
+      - .env
+    command:
+      - "http"
+      - "frontend:3000"
+      - "--url=${NGROK_URL:-https://relaxed-yak-pleasantly.ngrok-free.app}"
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    ports:
+      - "4040:4040"
+    depends_on:
+      frontend:
         condition: service_started
 
 volumes:

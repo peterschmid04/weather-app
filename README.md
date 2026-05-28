@@ -1,94 +1,103 @@
 # Weather App
 
-Weather App is a Docker Compose project with a React frontend, an ASP.NET Core backend, PostgreSQL persistence, pgAdmin, Auth0 authentication, and OpenWeatherMap weather data.
+Containerisierte Wetterdaten-Plattform mit React-Frontend, ASP.NET-Core-Minimal-API, PostgreSQL, pgAdmin, Auth0-Login und OpenWeatherMap-Anbindung.
 
-## What You Need
+Das Projekt ist so vorbereitet, dass ein frischer Clone mit lokaler `.env` über Docker Compose startet. Echte Secrets liegen nur lokal in `.env` und werden nicht in Git aufgenommen.
 
-- Docker Desktop or Docker Engine with Docker Compose.
-- An Auth0 account: https://auth0.com/
-- An OpenWeatherMap API key: https://openweathermap.org/api
-- A local `.env` file in this repository root. The `.env` file is intentionally ignored by Git.
+## Inhalt
 
-Do not commit real keys. Use `.env.example` as the template and keep real values only in `.env`.
+- React-Weboberfläche für Wetterdaten, Favoriten, Suchverlauf, Themes und eigene Wetterstationen.
+- ASP.NET-Core-Backend mit REST-Endpunkten.
+- PostgreSQL-Datenbank mit EF Core als ORM.
+- pgAdmin zur Ansicht und Bearbeitung der Datenbank.
+- Auth0 Universal Login mit Benutzername/Passwort und Social Login.
+- OpenWeatherMap als externe Wetterdatenquelle.
+- Optionaler ngrok-Tunnel für öffentlichen Zugriff auf das lokale Frontend.
+- Optionale ausführliche Backend-Datei-Logs.
 
-## Fast Start
+## Voraussetzungen
 
-Fresh clone, then run one of these from the repository root.
+- Docker Desktop oder Docker Engine mit Docker Compose.
+- Auth0 Account: https://auth0.com/
+- OpenWeatherMap API Key: https://openweathermap.org/api
+- Optional ngrok Account und Authtoken: https://ngrok.com/
 
-Windows 11:
+## Schnellstart
+
+Repository klonen:
+
+```sh
+git clone https://github.com/peterschmid04/weather-app.git
+cd weather-app
+```
+
+Wenn noch keine `.env` existiert, kann eine Startdatei die wichtigsten Werte abfragen und `.env` anlegen.
+
+Windows:
 
 ```powershell
 .\start-weather-app.bat
 ```
 
-Windows PowerShell directly:
+Windows PowerShell direkt:
 
 ```powershell
 .\start-weather-app.ps1
 ```
 
-macOS or Linux:
+macOS oder Linux:
 
 ```sh
 sh ./start-weather-app.sh
 ```
 
-If `.env` already exists, the scripts immediately run Docker Compose and do not ask for values again.
-
-If `.env` does not exist yet, the scripts ask only for:
-
-- Auth0 Domain
-- Auth0 Audience, default `https://weather-api`
-- Auth0 ClientId
-- OpenWeatherMap API key
-
-PostgreSQL, pgAdmin, Auth0 scope, and Auth0 connection names are filled automatically. The scripts write `.env`, then run:
+Wenn `.env` bereits existiert, fragen die Scripts nichts erneut ab und starten direkt:
 
 ```sh
 docker compose up -d
 ```
 
-The generated PostgreSQL password is stored in `.env`. pgAdmin uses the same generated password by default.
+## Manuelle Einrichtung
 
-## Manual Start
-
-Copy the example file:
+`.env.example` kopieren:
 
 ```sh
 cp .env.example .env
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Fill in `.env`, then start:
+Dann `.env` ausfüllen und starten:
 
 ```sh
 docker compose up -d
 ```
 
-URLs:
+Wichtige URLs:
 
 - Frontend: http://localhost:3000
 - Backend Swagger: http://localhost:5122/swagger
 - pgAdmin: http://localhost:5050
-- PostgreSQL host from your computer: `localhost:5432`
-- PostgreSQL host from containers/pgAdmin: `db:5432`
+- PostgreSQL vom Host: `localhost:5432`
+- PostgreSQL aus Docker/pgAdmin: `db:5432`
 
-## Environment Variables
+## `.env`
 
-Required local values in `.env`:
+Die `.env` liegt im Repository-Root, wird aber durch `.gitignore` ignoriert. Dort stehen lokale Secrets und lokale Startoptionen.
+
+Beispiel:
 
 ```env
 POSTGRES_DB=weather_app
 POSTGRES_USER=weather_app
-POSTGRES_PASSWORD=your-local-db-password
+POSTGRES_PASSWORD=change-me-for-local-development
 
 PGADMIN_DEFAULT_EMAIL=admin@example.com
-PGADMIN_DEFAULT_PASSWORD=your-local-pgadmin-password
+PGADMIN_DEFAULT_PASSWORD=change-me-for-local-development
 
 AUTH0_DOMAIN=your-tenant.region.auth0.com
 AUTH0_AUDIENCE=https://weather-api
@@ -102,84 +111,316 @@ AUTH0_CONNECTION_FACEBOOK=facebook
 AUTH0_CONNECTION_GITHUB=github
 
 OPENWEATHERMAP_API_KEY=your-openweathermap-api-key
+
+LOGS=false
+LOG_DIRECTORY=/workspace/logs
+
+NGROK_AUTHTOKEN=your-ngrok-authtoken
+NGROK_URL=https://relaxed-yak-pleasantly.ngrok-free.app
 ```
 
-`AUTH0_CLIENT_ID` is the Auth0 Single Page Application client ID. For a React SPA this is not a client secret. Social provider secrets for Google, Apple, Facebook, or GitHub belong in the Auth0 Dashboard connections, not in this repository.
+Wichtig:
+
+- Kein Auth0 Client Secret in dieses Projekt schreiben.
+- React ist eine Single Page Application; sie braucht nur die Auth0 Domain, Audience und Client ID.
+- Provider-Secrets für Google, Apple, Facebook und GitHub gehören in Auth0, nicht in `.env`.
+- `.env.example` enthält nur Platzhalter.
 
 ## Auth0 Setup
 
-Create or use an Auth0 tenant.
+Auth0 verwaltet Login, Registrierung, Passwort-Hashing, Salt, Social Login und Token-Ausstellung. Unsere Datenbank speichert keine Passwörter.
 
-Create an Auth0 Single Page Application for the frontend:
+### 1. Auth0 Application
 
-- Allowed Callback URLs: `http://localhost:3000`
-- Allowed Logout URLs: `http://localhost:3000`
-- Allowed Web Origins: `http://localhost:3000`
-- Grant type: Authorization Code Flow with PKCE
+Im Auth0 Dashboard:
 
-Create an Auth0 API:
+1. Links `Applications` öffnen.
+2. `Applications` auswählen.
+3. Weather-App öffnen oder neue App erstellen.
+4. Typ: `Single Page Application`.
+5. Tab `Settings` öffnen.
 
-- Identifier/Audience: the same value as `AUTH0_AUDIENCE`, for example `https://weather-api`
+Diese Felder setzen:
 
-Enable these Auth0 connections for the application:
+```text
+Allowed Callback URLs:
+http://localhost:3000
 
-- Database connection for username/password login and registration, usually `Username-Password-Authentication`
-- Google social connection, usually `google-oauth2`
-- Apple social connection, usually `apple`
-- Facebook social connection, usually `facebook`
-- GitHub social connection, usually `github`
+Allowed Logout URLs:
+http://localhost:3000
 
-For GitHub login, create a GitHub OAuth App in GitHub Developer Settings, then enter the generated GitHub Client ID and Client Secret into the Auth0 GitHub Social Connection. The project `.env` only needs the Auth0 connection name `github`.
+Allowed Web Origins:
+http://localhost:3000
+```
 
-The app uses the Auth0 React SDK in the frontend. Auth0 handles login, registration, password hashing, salts, social login, and token issuing. The backend does not store passwords. The backend validates JWT Bearer access tokens with ASP.NET Core, which is the C# equivalent of reading `Authorization: Bearer ...` in the lecture's FastAPI example.
+Danach unten `Save Changes`.
 
-Answer for the project question: yes, the app uses Auth0 libraries with Authorization Code Flow plus PKCE for the SPA, and the API validates Auth0 JWT Bearer tokens.
+Wenn ngrok genutzt wird, zusätzlich die öffentliche ngrok URL eintragen:
+
+```text
+Allowed Callback URLs:
+http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+
+Allowed Logout URLs:
+http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+
+Allowed Web Origins:
+http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+```
+
+### 2. Auth0 API / Audience
+
+Im Auth0 Dashboard:
+
+1. Links `Applications` öffnen.
+2. `APIs` auswählen.
+3. API erstellen oder öffnen.
+4. Identifier muss zur `.env` passen.
+
+Beispiel:
+
+```env
+AUTH0_AUDIENCE=https://weather-api
+```
+
+### 3. Auth0 Werte für `.env`
+
+Diese Werte aus Auth0 übernehmen:
+
+```env
+AUTH0_DOMAIN=dein-tenant.eu.auth0.com
+AUTH0_CLIENT_ID=deine-spa-client-id
+AUTH0_AUDIENCE=https://weather-api
+```
+
+`AUTH0_DOMAIN` und `AUTH0_CLIENT_ID` stehen bei `Applications -> deine App -> Settings`.
+
+`AUTH0_AUDIENCE` ist der API-Identifier aus `Applications -> APIs`.
+
+### 4. Login-Methoden aktivieren
+
+Benutzername/Passwort:
+
+1. `Authentication -> Database`.
+2. `Username-Password-Authentication` öffnen oder erstellen.
+3. Tab `Applications`.
+4. Weather-App aktivieren.
+
+Google, Apple, Facebook und GitHub:
+
+1. `Authentication -> Social`.
+2. `Create Connection`.
+3. Provider wählen.
+4. Provider Client ID und Client Secret eintragen.
+5. Tab `Applications`.
+6. Weather-App aktivieren.
+
+Die Provider-Keys bekommst du beim jeweiligen Anbieter:
+
+- Google: Google Cloud Console OAuth Client.
+- Apple: Apple Developer Account.
+- Facebook: Meta Developer App.
+- GitHub: GitHub Developer Settings OAuth App.
+
+Das Projekt nutzt im Frontend die Auth0 React SDK. Diese nutzt für SPAs den Authorization Code Flow mit PKCE. Das Backend validiert danach das JWT als `Authorization: Bearer <token>` mit ASP.NET Core JWT Bearer Authentication.
 
 ## OpenWeatherMap Setup
 
-Create an account at https://openweathermap.org/api and generate an API key. Put it into:
+1. Konto bei OpenWeatherMap erstellen: https://openweathermap.org/api
+2. API Key im OpenWeather Dashboard erzeugen.
+3. Key lokal in `.env` eintragen:
 
 ```env
-OPENWEATHERMAP_API_KEY=your-openweathermap-api-key
+OPENWEATHERMAP_API_KEY=dein-openweathermap-key
 ```
 
-The key is passed to the backend by Docker Compose and is not committed.
+Der Key wird nur an das Backend übergeben. Das Frontend bekommt den Key nicht direkt.
 
-## Database And pgAdmin
+## Docker Compose Services
 
-Docker Compose starts:
+Docker Compose startet:
 
-- `db`: official `postgres:latest`
-- `pgadmin`: official `dpage/pgadmin4:latest`
+- `frontend`: React App auf Port `3000`.
+- `backend`: ASP.NET Core API auf Port `5122`.
+- `db`: PostgreSQL auf Port `5432`.
+- `pgadmin`: pgAdmin auf Port `5050`.
+- `ngrok`: optionales Profil, nur bei Bedarf.
 
-Database files are stored in Docker volumes, not in the local OneDrive project folder. Backend `bin`, backend `obj`, test `bin`, test `obj`, NuGet packages, and frontend `node_modules` also use Docker volumes.
+Start:
 
-You do not need to create the database manually. `POSTGRES_DB` defaults to `weather_app`, and the official Postgres container creates that database automatically on the first start when the Docker volume is empty. Keeping the default name is easiest because backend and pgAdmin are already configured for it.
+```sh
+docker compose up -d
+```
 
-Open pgAdmin at http://localhost:5050 and log in with:
+Status:
 
-- Email: `PGADMIN_DEFAULT_EMAIL`
-- Password: `PGADMIN_DEFAULT_PASSWORD`
+```sh
+docker compose ps
+```
 
-The server profile `Weather PostgreSQL` is preloaded. If pgAdmin asks for the database password, use `POSTGRES_PASSWORD` from `.env`.
+Logs:
 
-## Features
+```sh
+docker compose logs -f frontend backend db pgadmin
+```
 
-- Auth0 login and registration.
-- Auth0 social login buttons for Google, Apple, Facebook, and GitHub.
-- Weather search through the ASP.NET Core API.
-- Forecast, UV index, air quality, humidity, wind, sunrise, and sunset.
-- Own places/weather stations in the web UI.
-- Own station measurements in the web UI.
-- Station data is separated by the authenticated Auth0 user.
-- PostgreSQL persistence through EF Core ORM.
-- No raw SQL queries in app code.
+Stoppen:
 
-## Backend Persistence
+```sh
+docker compose down
+```
 
-The backend uses EF Core with Npgsql, the C# ORM equivalent to SQLAlchemy from the lecture.
+## PostgreSQL und pgAdmin
 
-Tables:
+Die Datenbank wird vom offiziellen `postgres:latest` Container erstellt. Du musst die Datenbank nicht manuell anlegen.
+
+Standardname:
+
+```env
+POSTGRES_DB=weather_app
+```
+
+Die Datenbankdateien liegen in einem Docker Volume und nicht im lokalen OneDrive-Projektordner.
+
+pgAdmin:
+
+1. http://localhost:5050 öffnen.
+2. Mit `PGADMIN_DEFAULT_EMAIL` und `PGADMIN_DEFAULT_PASSWORD` aus `.env` einloggen.
+3. Der Server `Weather PostgreSQL` ist vorbereitet.
+4. Wenn pgAdmin nach dem DB-Passwort fragt: `POSTGRES_PASSWORD` aus `.env`.
+
+### Hinweis zu `__EFMigrationsHistory`
+
+Auf einem komplett neuen PC kann PostgreSQL beim ersten Start so eine Meldung ausgeben:
+
+```text
+ERROR: relation "__EFMigrationsHistory" does not exist
+```
+
+Das ist die EF-Core-Migrationstabelle. Der Stack enthält ein Postgres-Init-Script, das diese Tabelle auf frischen Datenbank-Volumes vorbereitet. Danach kann EF Core die Migrationen sauber anwenden.
+
+Falls ein altes, halb initialisiertes Docker Volume benutzt wird, kann man für einen echten Neuaufbau die Volumes löschen:
+
+```sh
+docker compose down -v
+docker compose up -d
+```
+
+Das löscht lokale Datenbankdaten. Nur machen, wenn die lokalen Testdaten weg dürfen.
+
+## Optionale ausführliche Backend-Logs
+
+Standard:
+
+```env
+LOGS=false
+```
+
+Dann wird kein lokaler `logs`-Ordner erzeugt.
+
+Für ausführliche Datei-Logs:
+
+```env
+LOGS=true
+LOG_DIRECTORY=/workspace/logs
+```
+
+Danach neu starten:
+
+```sh
+docker compose down
+docker compose up -d
+```
+
+Dann entsteht lokal ein `logs`-Ordner. Dieser Ordner ist in `.gitignore` eingetragen und wird nicht gepusht.
+
+## Optional ngrok
+
+ngrok ist nicht Pflicht. Die App läuft vollständig ohne ngrok lokal auf `http://localhost:3000`.
+
+ngrok ist nützlich, wenn das lokale Frontend über eine öffentliche HTTPS-URL erreichbar sein soll, zum Beispiel für Tests mit anderen Geräten.
+
+In `.env`:
+
+```env
+NGROK_AUTHTOKEN=dein-ngrok-authtoken
+NGROK_URL=https://relaxed-yak-pleasantly.ngrok-free.app
+```
+
+Start mit ngrok:
+
+```sh
+docker compose --profile ngrok up -d
+```
+
+Wenn Docker Compose schon läuft:
+
+```sh
+docker compose down
+docker compose --profile ngrok up -d
+```
+
+ngrok leitet dann auf den Frontend-Service im Docker-Netzwerk weiter:
+
+```text
+https://relaxed-yak-pleasantly.ngrok-free.app -> frontend:3000
+```
+
+Die ngrok Inspector UI ist erreichbar unter:
+
+```text
+http://localhost:4040
+```
+
+Für Auth0 Login über ngrok muss die ngrok URL zusätzlich in Auth0 bei Callback, Logout und Web Origins erlaubt sein.
+
+## Backend-Endpunkte
+
+Wetterdaten:
+
+- `GET /weather?city=Berlin`
+- `GET /forecast?lat=...&lon=...`
+- `GET /uv?lat=...&lon=...`
+- `GET /airquality?lat=...&lon=...`
+
+Profil:
+
+- `GET /my-profile`
+
+Suchverlauf:
+
+- `GET /history`
+- `POST /history`
+- `DELETE /history/{id}`
+
+Favoriten:
+
+- `GET /favorites`
+- `POST /favorites`
+- `PUT /favorites/{id}`
+- `DELETE /favorites/{id}`
+
+Theme:
+
+- `GET /theme`
+- `PUT /theme`
+
+Eigene Wetterstationen:
+
+- `GET /stations`
+- `POST /stations`
+- `PUT /stations/{stationId}`
+- `DELETE /stations/{stationId}`
+- `GET /stations/{stationId}/measurements`
+- `POST /stations/{stationId}/measurements`
+
+Alle fachlichen Endpunkte sind durch Auth0 JWT geschützt. Ohne gültigen Bearer Token antwortet das Backend mit `401`.
+
+## Datenbankmodell
+
+Das Backend nutzt EF Core mit Npgsql als ORM. Das ist die C#-Variante zu SQLAlchemy aus der Vorlesung.
+
+Tabellen:
 
 - `UserProfiles`
 - `Cities`
@@ -188,17 +429,37 @@ Tables:
 - `WeatherRequestLogs`
 - `WeatherStations`
 - `WeatherStationMeasurements`
+- `UserThemePreferences`
 
-The schema is normalized:
+Normalisierung:
 
-- User identity data is separated from city data.
-- City data is separated from station data.
-- Measurements are separated from stations.
-- Search history, favorites, request logs, stations, and measurements reference users/cities/stations through keys instead of duplicating full records.
+- Nutzerprofile enthalten nur lokale Auth0-Metadaten, keine Passwörter.
+- Städte liegen zentral in `Cities`.
+- Favoriten referenzieren Nutzer und Stadt.
+- Suchverlauf referenziert Nutzer und Stadt.
+- Wetterstationen referenzieren Nutzer und optional Stadt.
+- Messwerte referenzieren Wetterstationen.
+- Theme-Einstellungen referenzieren Nutzer.
 
-EF Core migrations are applied automatically when the backend starts.
+Dadurch werden Wiederholungen reduziert und die Datenstruktur erfüllt die Anforderungen der ersten drei Normalformen für den Projektumfang.
 
-## Architecture
+## Frontend-Funktionen
+
+- Auth0 Login und Logout.
+- Registrierung über Auth0.
+- Social Login Buttons für Google, Apple, Facebook und GitHub.
+- Wetterdashboard mit aktueller Stadt.
+- Forecast-Karten.
+- Highlights für UV, Wind, Sonnenaufgang, Sonnenuntergang, Luftfeuchtigkeit, Sichtweite und Luftqualität.
+- Suchverlauf mit maximal drei Einträgen pro Nutzer.
+- Favoriten mit CRUD.
+- Eigene Wetterstationen mit CRUD.
+- Eigene Messwerte pro Wetterstation.
+- Farbthemes, die pro Nutzer in PostgreSQL gespeichert werden.
+- Deutsche Oberfläche.
+- Fehleranzeigen für 401, 403, 404, 409, 429 und 500.
+
+## Architektur
 
 ```mermaid
 flowchart LR
@@ -207,38 +468,70 @@ flowchart LR
   API --> Postgres["PostgreSQL"]
   API --> OWM["OpenWeatherMap API"]
   PgAdmin["pgAdmin"] --> Postgres
+  Ngrok["ngrok optional"] --> Browser
   Auth0 --> Browser
   Browser -->|"Authorization: Bearer access token"| API
 ```
 
-## Useful Commands
+## Tests und Checks
 
-Start everything:
-
-```sh
-docker compose up -d
-```
-
-Show containers:
+Frontend Build:
 
 ```sh
-docker compose ps
+docker compose run --rm --no-deps -v weather_app_frontend_build:/workspace/weather-app/build frontend sh -c "npm run build"
 ```
 
-Stop everything:
+Backend Build:
+
+```sh
+docker compose exec -T backend dotnet build /workspace/weatherAPIOAuth/weatherAPI.sln --no-restore
+```
+
+Backend Tests:
+
+```sh
+docker compose exec -T backend dotnet test /workspace/weatherAPIOAuth/weatherAPI.sln --no-build --no-restore
+```
+
+Kompletter Neustart:
 
 ```sh
 docker compose down
+docker compose up -d
 ```
 
-Run backend tests in Docker:
+Kompletter Neustart mit leerer Datenbank:
 
 ```sh
-docker compose run --rm --no-TTY backend dotnet test ../weatherAPI.Test/weatherAPI.Test.csproj --verbosity minimal
+docker compose down -v
+docker compose up -d
 ```
 
-## Cross-Platform Notes
+`down -v` löscht die lokalen Docker-Volumes inklusive Datenbankdaten.
 
-The stack is designed for Windows, Linux, and macOS. PostgreSQL runs natively on amd64/x86_64 and ARM64, including Mac with M-chip, so no SQL Server amd64 emulation is needed.
+## Plattformhinweise
 
-Use the `.sh` script on macOS/Linux and the `.bat` or `.ps1` script on Windows.
+Der Stack ist auf Windows, Linux und macOS ausgelegt.
+
+PostgreSQL läuft nativ auf x86_64/amd64 und ARM64. Dadurch ist auf Mac mit M-Chip keine SQL-Server-Emulation nötig.
+
+Die lokalen Build-Ausgaben liegen in Docker Volumes:
+
+- Frontend `node_modules`.
+- Backend `bin`.
+- Backend `obj`.
+- NuGet Packages.
+- PostgreSQL Daten.
+- pgAdmin Daten.
+
+Der Projektordner bleibt dadurch sauber und OneDrive bekommt keine riesigen generierten Ordner.
+
+## Quellen
+
+- Auth0 Application Settings: https://auth0.com/docs/get-started/applications/application-settings
+- Auth0 React SDK: https://auth0.com/docs/libraries/auth0-react
+- Auth0 Authorization Code Flow with PKCE: https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce
+- OpenWeatherMap API: https://openweathermap.org/api
+- ngrok Docker: https://ngrok.com/docs/using-ngrok-with/docker/
+- ngrok Docker Compose: https://ngrok.com/docs/using-ngrok-with/docker/compose
+- ngrok HTTP Endpoints: https://ngrok.com/docs/http
