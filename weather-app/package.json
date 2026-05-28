@@ -2,6 +2,7 @@
   "name": "weather-app",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://backend:5122",
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
     "axios": "^1.7.9",

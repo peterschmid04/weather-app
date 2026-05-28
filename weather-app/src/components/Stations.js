@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./Stations.css";
 import { formatCityLocation } from "../utils/localizationUtils";
+import { buildApiUrl } from "../utils/apiUtils";
 
 const emptyStation = {
   name: "",
@@ -36,7 +37,7 @@ export default function Stations({ authFetchJson }) {
   );
 
   const loadStations = useCallback(async () => {
-    const data = await authFetchJson("http://localhost:5122/stations/");
+    const data = await authFetchJson(buildApiUrl("/stations/"));
     setStations(data);
     if (!selectedStationId && data.length > 0) {
       setSelectedStationId(data[0].id);
@@ -52,7 +53,7 @@ export default function Stations({ authFetchJson }) {
         setMeasurements([]);
         return;
       }
-      const data = await authFetchJson(`http://localhost:5122/stations/${stationId}/measurements`);
+      const data = await authFetchJson(buildApiUrl(`/stations/${stationId}/measurements`));
       setMeasurements(data);
     },
     [authFetchJson]
@@ -96,8 +97,8 @@ export default function Stations({ authFetchJson }) {
     };
 
     const url = editingStationId
-      ? `http://localhost:5122/stations/${editingStationId}`
-      : "http://localhost:5122/stations/";
+      ? buildApiUrl(`/stations/${editingStationId}`)
+      : buildApiUrl("/stations/");
 
     try {
       const saved = await authFetchJson(url, {
@@ -127,7 +128,7 @@ export default function Stations({ authFetchJson }) {
 
   const deleteStation = async (stationId) => {
     try {
-      await authFetchJson(`http://localhost:5122/stations/${stationId}`, { method: "DELETE" });
+      await authFetchJson(buildApiUrl(`/stations/${stationId}`), { method: "DELETE" });
       if (selectedStationId === stationId) {
         setSelectedStationId("");
         setMeasurements([]);
@@ -149,7 +150,7 @@ export default function Stations({ authFetchJson }) {
 
     setMessage("");
     try {
-      await authFetchJson(`http://localhost:5122/stations/${selectedStationId}/measurements`, {
+      await authFetchJson(buildApiUrl(`/stations/${selectedStationId}/measurements`), {
         method: "POST",
         body: JSON.stringify({
           temperatureC: numberOrNull(measurementForm.temperatureC),
