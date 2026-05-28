@@ -103,6 +103,10 @@ $auth0Facebook = "facebook"
 $auth0GitHub = "github"
 
 $openWeatherKey = Read-SecretValue "OPENWEATHERMAP_API_KEY"
+$logs = "false"
+$logDirectory = "/workspace/logs"
+$ngrokAuthtoken = ""
+$ngrokUrl = "https://relaxed-yak-pleasantly.ngrok-free.app"
 
 $values = [ordered]@{
     POSTGRES_DB = $postgresDb
@@ -120,6 +124,10 @@ $values = [ordered]@{
     AUTH0_CONNECTION_FACEBOOK = $auth0Facebook
     AUTH0_CONNECTION_GITHUB = $auth0GitHub
     OPENWEATHERMAP_API_KEY = $openWeatherKey
+    LOGS = $logs
+    LOG_DIRECTORY = $logDirectory
+    NGROK_AUTHTOKEN = $ngrokAuthtoken
+    NGROK_URL = $ngrokUrl
 }
 
 foreach ($entry in $values.GetEnumerator()) {
@@ -146,7 +154,13 @@ $envLines = @(
     "AUTH0_CONNECTION_FACEBOOK=$auth0Facebook",
     "AUTH0_CONNECTION_GITHUB=$auth0GitHub",
     "",
-    "OPENWEATHERMAP_API_KEY=$openWeatherKey"
+    "OPENWEATHERMAP_API_KEY=$openWeatherKey",
+    "",
+    "LOGS=$logs",
+    "LOG_DIRECTORY=$logDirectory",
+    "",
+    "NGROK_AUTHTOKEN=$ngrokAuthtoken",
+    "NGROK_URL=$ngrokUrl"
 )
 
 Set-Content -Path ".env" -Value $envLines -Encoding UTF8

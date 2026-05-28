@@ -33,3 +33,8 @@ coverage/
 
 # Docker/local runtime data
 .docker/
+
+# Optional detailed application logs
+logs/
+**/logs/
+*.log
