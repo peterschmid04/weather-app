@@ -168,6 +168,20 @@ Allowed Web Origins:
 http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
 ```
 
+Wenn Auth0 `Callback URL mismatch` anzeigt, sendet das Frontend eine `redirect_uri`, die in diesen Feldern noch nicht erlaubt ist. Lokal ist das normalerweise:
+
+```text
+http://localhost:3000
+```
+
+Mit ngrok ist es die öffentliche URL aus `NGROK_URL`, zum Beispiel:
+
+```text
+https://relaxed-yak-pleasantly.ngrok-free.app
+```
+
+Für den Tenant `dev-021n1l5l5ftyrnjp` bedeutet das: In der Auth0 Application genau diese lokale und/oder ngrok-URL bei `Allowed Callback URLs`, `Allowed Logout URLs` und `Allowed Web Origins` eintragen. Danach `Save Changes` drücken und den Login neu starten.
+
 ### 2. Auth0 API / Audience
 
 Im Auth0 Dashboard:
@@ -221,6 +235,20 @@ Die Provider-Keys bekommst du beim jeweiligen Anbieter:
 - Apple: Apple Developer Account.
 - Facebook: Meta Developer App.
 - GitHub: GitHub Developer Settings OAuth App.
+
+Wichtig bei Google: Die Google OAuth App leitet nicht direkt auf `localhost:3000`, sondern auf Auth0 zurück. In Google Cloud muss deshalb als `Authorized redirect URI` die Auth0 Callback-URL eingetragen werden:
+
+```text
+https://AUTH0_DOMAIN/login/callback
+```
+
+Beispiel mit deinem Auth0-Tenant:
+
+```text
+https://dev-021n1l5l5ftyrnjp.<region>.auth0.com/login/callback
+```
+
+`<region>` durch die Region aus `AUTH0_DOMAIN` ersetzen, zum Beispiel `eu` oder `us`. Danach in Auth0 unter `Authentication -> Social -> Google` die Google Client ID und das Google Client Secret eintragen und die Weather-App im Tab `Applications` aktivieren.
 
 Das Projekt nutzt im Frontend die Auth0 React SDK. Diese nutzt für SPAs den Authorization Code Flow mit PKCE. Das Backend validiert danach das JWT als `Authorization: Bearer <token>` mit ASP.NET Core JWT Bearer Authentication.
 
@@ -352,6 +380,8 @@ Start mit ngrok:
 ```sh
 docker compose --profile ngrok up -d
 ```
+
+Compose wartet dabei auf den Frontend-Healthcheck. ngrok startet also erst, wenn der React-Service im Container auf `http://localhost:3000` antwortet. Das verhindert, dass der Tunnel zu früh startet, während `npm ci` oder `npm start` noch laufen.
 
 Wenn Docker Compose schon läuft:
 

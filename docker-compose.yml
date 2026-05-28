@@ -95,6 +95,12 @@ services:
     volumes:
       - .:/workspace
       - weather_app_frontend_node_modules:/workspace/weather-app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 90s
     depends_on:
       backend:
         condition: service_started
@@ -116,7 +122,7 @@ services:
       - "4040:4040"
     depends_on:
       frontend:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   weather_app_postgres_data:

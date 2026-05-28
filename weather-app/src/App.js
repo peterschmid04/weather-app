@@ -33,6 +33,7 @@ export default function WeatherApp() {
   const [timezoneOffset, setTimezoneOffset] = useState(0);
   const [isCelsius, setIsCelsius] = useState(true);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [favoritesRefreshKey, setFavoritesRefreshKey] = useState(0);
   const [themeName, setThemeName] = useState("graphite");
   const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
 
@@ -268,6 +269,10 @@ export default function WeatherApp() {
         currentTime={currentTime}
         isCelsius={isCelsius}
         searchMessage={searchMessage}
+        authFetchJson={authFetchJson}
+        historyRefreshKey={historyRefreshKey}
+        favoritesRefreshKey={favoritesRefreshKey}
+        onSelectCity={loadCityFromSavedItem}
       />
 
       {weather && (
@@ -305,6 +310,8 @@ export default function WeatherApp() {
         onSelectCity={loadCityFromSavedItem}
         themeName={themeName}
         onThemeChange={setThemeName}
+        onHistoryChanged={() => setHistoryRefreshKey((current) => current + 1)}
+        onFavoritesChanged={() => setFavoritesRefreshKey((current) => current + 1)}
       />
       <Stations authFetchJson={authFetchJson} />
 

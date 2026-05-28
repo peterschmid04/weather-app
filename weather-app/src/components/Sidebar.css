@@ -12,20 +12,26 @@
   min-height: 100vh;
   white-space: normal;
 }
+
+.search-area {
+  width: min(360px, 100%);
+  margin: 30px 30px 24px;
+  display: grid;
+  gap: 10px;
+}
   
 .cityInput {
   padding: 10px;
-  margin: 0 30px 30px;
+  margin: 0;
   font-size: 1rem;
   border: none;
   color: hsl(0, 0%, 0%);
   border-radius: 10px; /* Rounded input corners */
-  width: min(300px, 100%);
+  width: 100%;
 }
 
 .search-message {
-  align-self: stretch;
-  margin: 30px 30px 8px;
+  margin: 0;
   padding: 10px 12px;
   background: rgba(250, 204, 21, 0.14);
   border: 1px solid var(--accent);
@@ -37,9 +43,68 @@
 .cityInput:focus {
   outline: none; /* Remove default focus outline */
 }
+
+.quick-search-panel {
+  width: 100%;
+  padding: 10px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+  display: grid;
+  gap: 10px;
+}
+
+.quick-section {
+  display: grid;
+  gap: 7px;
+}
+
+.quick-section-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.quick-item {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-item:hover {
+  border-color: var(--accent);
+  background: var(--button-bg);
+}
+
+.quick-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.quick-favorites-card {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 7px;
+}
   
 .sidebar .image {
-  padding-top: 30px;
+  padding-top: 6px;
   width: 80%;
   height: 80%;
   object-fit: fill; /* Stretch image to fill container */
