@@ -15,12 +15,23 @@
   
 .cityInput {
   padding: 10px;
-  margin: 30px;
+  margin: 0 30px 30px;
   font-size: 1rem;
   border: none;
   color: hsl(0, 0%, 0%);
   border-radius: 10px; /* Rounded input corners */
   width: min(300px, 100%);
+}
+
+.search-message {
+  align-self: stretch;
+  margin: 30px 30px 8px;
+  padding: 10px 12px;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.95rem;
 }
   
 .cityInput:focus {

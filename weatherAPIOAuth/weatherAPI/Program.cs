@@ -217,7 +217,7 @@ app.MapGet("/weather", async (
         StatusCode = StatusCodes.Status200OK,
         WasSuccessful = true
     });
-    await db.SaveChangesAsync();
+    await SaveChangesAndTrimSearchHistoryAsync(db, user.Id);
 
     return Results.Ok(resultWeather);
 });
@@ -262,11 +262,13 @@ history.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db)
         return Results.Unauthorized();
     }
 
+    await TrimSearchHistoryAsync(db, user.Id);
+
     var result = await db.SearchHistory
         .AsNoTracking()
         .Where(item => item.UserProfileId == user.Id)
         .OrderByDescending(item => item.SearchedAtUtc)
-        .Take(25)
+        .Take(3)
         .Select(item => new SearchHistoryResponse(
             item.Id,
             item.QueryText,
@@ -307,7 +309,7 @@ history.MapPost("/", async (
     };
 
     db.SearchHistory.Add(item);
-    await db.SaveChangesAsync();
+    await SaveChangesAndTrimSearchHistoryAsync(db, user.Id);
 
     return Results.Created($"/history/{item.Id}", new SearchHistoryResponse(
         item.Id,
@@ -1050,6 +1052,29 @@ static async Task AddWeatherRequestLogAsync(
         WasSuccessful = wasSuccessful,
         ErrorMessage = errorMessage
     });
+    await db.SaveChangesAsync();
+}
+
+static async Task SaveChangesAndTrimSearchHistoryAsync(WeatherDbContext db, Guid userProfileId)
+{
+    await db.SaveChangesAsync();
+    await TrimSearchHistoryAsync(db, userProfileId);
+}
+
+static async Task TrimSearchHistoryAsync(WeatherDbContext db, Guid userProfileId)
+{
+    var oldItems = await db.SearchHistory
+        .Where(item => item.UserProfileId == userProfileId)
+        .OrderByDescending(item => item.SearchedAtUtc)
+        .Skip(3)
+        .ToListAsync();
+
+    if (oldItems.Count == 0)
+    {
+        return;
+    }
+
+    db.SearchHistory.RemoveRange(oldItems);
     await db.SaveChangesAsync();
 }
 

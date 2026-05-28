@@ -133,16 +133,16 @@ export default function Stations({ authFetchJson }) {
       }
       resetStationForm();
       await loadStations();
-      setMessage("Station geloescht.");
+      setMessage("Station gelöscht.");
     } catch (error) {
-      setMessage(error.message || "Station konnte nicht geloescht werden.");
+      setMessage(error.message || "Station konnte nicht gelöscht werden.");
     }
   };
 
   const createMeasurement = async (event) => {
     event.preventDefault();
     if (!selectedStationId) {
-      setMessage("Bitte zuerst eine Station auswaehlen.");
+      setMessage("Bitte zuerst eine Station auswählen.");
       return;
     }
 
@@ -174,7 +174,7 @@ export default function Stations({ authFetchJson }) {
       <div className="stations-header">
         <div>
           <h2>Eigene Orte und Wetterstationen</h2>
-          <p>Nur der Stationsname ist Pflicht. Ort und Land koennen spaeter angepasst werden.</p>
+          <p>Nur der Stationsname ist Pflicht. Ort und Land können später angepasst werden.</p>
         </div>
         {message && <span>{message}</span>}
       </div>
@@ -184,9 +184,9 @@ export default function Stations({ authFetchJson }) {
         <input value={stationForm.cityName} onChange={(event) => updateStationForm("cityName", event.target.value)} placeholder="Ort optional" />
         <input value={stationForm.countryCode} onChange={(event) => updateStationForm("countryCode", event.target.value.toUpperCase())} placeholder="DE" maxLength="2" />
         <input value={stationForm.latitude} onChange={(event) => updateStationForm("latitude", event.target.value)} placeholder="Breitengrad optional" type="number" step="0.000001" />
-        <input value={stationForm.longitude} onChange={(event) => updateStationForm("longitude", event.target.value)} placeholder="Laengengrad optional" type="number" step="0.000001" />
+        <input value={stationForm.longitude} onChange={(event) => updateStationForm("longitude", event.target.value)} placeholder="Längengrad optional" type="number" step="0.000001" />
         <input value={stationForm.description} onChange={(event) => updateStationForm("description", event.target.value)} placeholder="Beschreibung optional" />
-        <button type="submit">{editingStationId ? "Station aendern" : "Station speichern"}</button>
+        <button type="submit">{editingStationId ? "Station ändern" : "Station speichern"}</button>
         {editingStationId && <button type="button" onClick={resetStationForm}>Abbrechen</button>}
       </form>
 
@@ -198,11 +198,11 @@ export default function Stations({ authFetchJson }) {
               <button type="button" className="station-select" onClick={() => setSelectedStationId(station.id)}>
                 <strong>{station.name}</strong>
                 <span>{station.cityName}, {station.countryCode}</span>
-                {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} C</small>}
+                {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} °C</small>}
               </button>
               <div className="station-actions">
                 <button type="button" onClick={() => editStation(station)}>Bearbeiten</button>
-                <button type="button" onClick={() => deleteStation(station.id)}>Loeschen</button>
+                <button type="button" onClick={() => deleteStation(station.id)}>Löschen</button>
               </div>
             </article>
           ))}
@@ -210,7 +210,7 @@ export default function Stations({ authFetchJson }) {
 
         <form className="measurement-form" onSubmit={createMeasurement}>
           <h3>{selectedStation ? selectedStation.name : "Messwerte"}</h3>
-          <input value={measurementForm.temperatureC} onChange={(event) => updateMeasurementForm("temperatureC", event.target.value)} placeholder="Temperatur C" type="number" step="0.1" />
+          <input value={measurementForm.temperatureC} onChange={(event) => updateMeasurementForm("temperatureC", event.target.value)} placeholder="Temperatur °C" type="number" step="0.1" />
           <input value={measurementForm.humidityPercent} onChange={(event) => updateMeasurementForm("humidityPercent", event.target.value)} placeholder="Luftfeuchte %" type="number" step="0.1" />
           <input value={measurementForm.pressureHpa} onChange={(event) => updateMeasurementForm("pressureHpa", event.target.value)} placeholder="Luftdruck hPa" type="number" step="0.1" />
           <input value={measurementForm.windSpeedKmh} onChange={(event) => updateMeasurementForm("windSpeedKmh", event.target.value)} placeholder="Wind km/h" type="number" step="0.1" />
@@ -225,7 +225,7 @@ export default function Stations({ authFetchJson }) {
           {measurements.slice(0, 5).map((measurement) => (
             <article key={measurement.id}>
               <strong>{new Date(measurement.measuredAtUtc).toLocaleString("de-DE")}</strong>
-              <span>{measurement.temperatureC ?? "-"} C | {measurement.humidityPercent ?? "-"} % | {measurement.pressureHpa ?? "-"} hPa</span>
+              <span>{measurement.temperatureC ?? "-"} °C | {measurement.humidityPercent ?? "-"} % | {measurement.pressureHpa ?? "-"} hPa</span>
               {measurement.notes && <small>{measurement.notes}</small>}
             </article>
           ))}
