@@ -87,8 +87,8 @@ export default function Sidebar({
               {quickHistory.length === 0 && <span className="quick-empty">Noch kein Verlauf</span>}
               {quickHistory.map((item) => (
                 <div key={item.id} className="quick-history-row">
-                  <button type="button" className="quick-item" onClick={() => selectCity(item.cityName)}>
-                    {formatCityLocation(item.cityName, item.countryCode)}
+                  <button type="button" className="quick-item" onClick={() => selectCity(item.queryText || item.cityName)}>
+                    {formatCityLocation(item.queryText || item.cityName, item.countryCode)}
                   </button>
                   <button type="button" className="quick-delete" onClick={() => deleteHistory(item.id)}>
                     Löschen

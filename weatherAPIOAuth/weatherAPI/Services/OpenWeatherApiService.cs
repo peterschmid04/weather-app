@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Globalization;
+using System.Text;
 using weatherAPI.Models.External;
 using weatherAPI.Services.Interfaces;
 
@@ -10,6 +11,17 @@ public class OpenWeatherApiService : IOpenWeatherApiService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private static readonly Dictionary<string, string> WeatherQueryAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["freiburg"] = "Freiburg,DE",
+        ["freiburg im breisgau"] = "Freiburg,DE",
+        ["freiburg breisgau"] = "Freiburg,DE",
+        ["munchen"] = "Munich,DE",
+        ["muenchen"] = "Munich,DE",
+        ["munich"] = "Munich,DE",
+        ["wien"] = "Vienna,AT",
+        ["vienna"] = "Vienna,AT",
+    };
     
     public OpenWeatherApiService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
@@ -21,12 +33,47 @@ public class OpenWeatherApiService : IOpenWeatherApiService
     {
         var apiKey = _configuration["OpenWeatherMap:ApiKey"];    
         var client = _httpClientFactory.CreateClient();  
-        var apiUrl = $"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}";
+        var weatherQuery = BuildWeatherQuery(city);
+        var apiUrl = $"https://api.openweathermap.org/data/2.5/weather?q={Uri.EscapeDataString(weatherQuery)}&appid={Uri.EscapeDataString(apiKey ?? string.Empty)}";
         var response = await client.GetAsync(apiUrl);
     
         if (!response.IsSuccessStatusCode) return null;
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<OpenWeatherResponse>(json);
+    }
+
+    private static string BuildWeatherQuery(string city)
+    {
+        var normalizedCity = NormalizeWhitespace(city);
+        var lookupKey = NormalizeLookupKey(normalizedCity);
+
+        if (WeatherQueryAliases.TryGetValue(lookupKey, out var aliasedQuery))
+        {
+            return aliasedQuery;
+        }
+
+        return normalizedCity;
+    }
+
+    private static string NormalizeWhitespace(string value)
+    {
+        return string.Join(' ', value.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static string NormalizeLookupKey(string value)
+    {
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(normalized.Length);
+
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
     }
     
     public async Task<double?> GetAirQuality(double lat, double lon)

@@ -52,6 +52,8 @@ const weatherDescriptionMap = {
 };
 
 const cityNameMap = {
+  freiburg: "Freiburg",
+  "freiburg im breisgau": "Freiburg im Breisgau",
   vienna: "Wien",
   munich: "München",
   cologne: "Köln",
