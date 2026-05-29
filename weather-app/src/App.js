@@ -34,6 +34,8 @@ export default function WeatherApp() {
   const [isCelsius, setIsCelsius] = useState(true);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [favoritesRefreshKey, setFavoritesRefreshKey] = useState(0);
+  const [stationsRefreshKey, setStationsRefreshKey] = useState(0);
+  const [selectedStationId, setSelectedStationId] = useState("");
   const [themeName, setThemeName] = useState("graphite");
   const activeWeatherRequestRef = useRef(0);
   const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
@@ -317,14 +319,20 @@ export default function WeatherApp() {
         authFetchJson={authFetchJson}
         currentWeather={weather}
         currentCountry={country}
-        historyRefreshKey={historyRefreshKey}
+        stationsRefreshKey={stationsRefreshKey}
+        selectedStationId={selectedStationId}
+        onSelectedStationChange={setSelectedStationId}
         onSelectCity={loadCityFromSavedItem}
         themeName={themeName}
         onThemeChange={setThemeName}
-        onHistoryChanged={() => setHistoryRefreshKey((current) => current + 1)}
         onFavoritesChanged={() => setFavoritesRefreshKey((current) => current + 1)}
       />
-      <Stations authFetchJson={authFetchJson} />
+      <Stations
+        authFetchJson={authFetchJson}
+        selectedStationId={selectedStationId}
+        onSelectedStationChange={setSelectedStationId}
+        onStationsChanged={() => setStationsRefreshKey((current) => current + 1)}
+      />
 
       {!weather && (
         <button className="errorLogout" onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>

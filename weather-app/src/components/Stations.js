@@ -22,9 +22,8 @@ const emptyMeasurement = {
   notes: "",
 };
 
-export default function Stations({ authFetchJson }) {
+export default function Stations({ authFetchJson, selectedStationId, onSelectedStationChange, onStationsChanged }) {
   const [stations, setStations] = useState([]);
-  const [selectedStationId, setSelectedStationId] = useState("");
   const [editingStationId, setEditingStationId] = useState("");
   const [stationForm, setStationForm] = useState(emptyStation);
   const [measurementForm, setMeasurementForm] = useState(emptyMeasurement);
@@ -36,16 +35,36 @@ export default function Stations({ authFetchJson }) {
     [stations, selectedStationId]
   );
 
-  const loadStations = useCallback(async () => {
+  const loadStations = useCallback(async (preferredStationId = selectedStationId) => {
     const data = await authFetchJson(buildApiUrl("/stations/"));
     setStations(data);
-    if (!selectedStationId && data.length > 0) {
-      setSelectedStationId(data[0].id);
+
+    if (preferredStationId && data.some((station) => station.id === preferredStationId)) {
+      onSelectedStationChange?.(preferredStationId);
+      return data;
     }
-    if (selectedStationId && !data.some((station) => station.id === selectedStationId)) {
-      setSelectedStationId(data[0]?.id || "");
+
+    onSelectedStationChange?.(data[0]?.id || "");
+    return data;
+  }, [authFetchJson, onSelectedStationChange, selectedStationId]);
+
+  const setSelectedStationId = useCallback(
+    (stationId) => {
+      onSelectedStationChange?.(stationId);
+    },
+    [onSelectedStationChange]
+  );
+
+  useEffect(() => {
+    if (!selectedStationId) {
+      return;
     }
-  }, [authFetchJson, selectedStationId]);
+
+    const selectedStationStillExists = stations.some((station) => station.id === selectedStationId);
+    if (stations.length > 0 && !selectedStationStillExists) {
+      onSelectedStationChange?.(stations[0].id);
+    }
+  }, [onSelectedStationChange, selectedStationId, stations]);
 
   const loadMeasurements = useCallback(
     async (stationId) => {
@@ -106,8 +125,8 @@ export default function Stations({ authFetchJson }) {
         body: JSON.stringify(payload),
       });
       resetStationForm();
-      setSelectedStationId(saved.id);
-      await loadStations();
+      await loadStations(saved.id);
+      onStationsChanged?.();
       setMessage(editingStationId ? "Station aktualisiert." : "Station gespeichert.");
     } catch (error) {
       setMessage(error.message || "Station konnte nicht gespeichert werden.");
@@ -135,6 +154,7 @@ export default function Stations({ authFetchJson }) {
       }
       resetStationForm();
       await loadStations();
+      onStationsChanged?.();
       setMessage("Station gelöscht.");
     } catch (error) {
       setMessage(error.message || "Station konnte nicht gelöscht werden.");
