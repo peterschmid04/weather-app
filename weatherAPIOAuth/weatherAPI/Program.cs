@@ -269,6 +269,24 @@ app.MapGet("/my-profile", async (HttpContext http, [FromServices] WeatherDbConte
             http.User.FindFirst(ClaimTypes.Email)?.Value ?? http.User.FindFirst("email")?.Value));
 });
 
+app.MapGet("/access", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(new AccessOverviewResponse(
+        user.Id,
+        user.DisplayName,
+        user.Email,
+        RegionAuthorization.GetRegionScope(http.User),
+        RegionAuthorization.GetAllowedRegionLabels(http.User),
+        RegionAuthorization.GetPermissions(http.User),
+        GetAuth0Roles(http.User)));
+});
+
 var history = app.MapGroup("/history");
 
 history.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -1413,6 +1431,17 @@ static string GetRateLimitPartitionKey(HttpContext context) =>
     ?? context.User.FindFirst("sub")?.Value
     ?? context.Connection.RemoteIpAddress?.ToString()
     ?? "anonymous";
+
+static IReadOnlyCollection<string> GetAuth0Roles(ClaimsPrincipal user) =>
+    user.Claims
+        .Where(claim =>
+            claim.Type.Equals("roles", StringComparison.OrdinalIgnoreCase) ||
+            claim.Type.EndsWith("/roles", StringComparison.OrdinalIgnoreCase))
+        .Select(claim => claim.Value)
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(value => value)
+        .ToList();
 
 static string NormalizeCountryCode(string? value) =>
     string.IsNullOrWhiteSpace(value) ? "DE" : value.Trim().ToUpperInvariant();

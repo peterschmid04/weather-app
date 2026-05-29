@@ -46,4 +46,4 @@
 - [x] Extra Feature Idee dokumentiert: Rollenbasierte Admin-/Region-Ansicht.
 - [x] Extra Feature umsetzen: Wetterstation an andere Nutzer teilen.
 - [x] Extra Feature umsetzen: Vertretung fuer Wetterstationsmesswerte.
-- [ ] Extra Feature umsetzen: Rollenbasierte Admin-/Region-Ansicht.
+- [x] Extra Feature umsetzen: Rollenbasierte Admin-/Region-Ansicht.
