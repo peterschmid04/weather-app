@@ -19,6 +19,7 @@ export default function Sidebar({
   favoritesRefreshKey,
   onSelectCity,
   onHistoryChanged,
+  onFavoritesChanged,
 }) {
   const [showSavedItems, setShowSavedItems] = useState(false);
   const [quickHistory, setQuickHistory] = useState([]);
@@ -60,6 +61,23 @@ export default function Sidebar({
     try {
       await authFetchJson(buildApiUrl(`/history/${historyId}`), { method: "DELETE" });
       onHistoryChanged?.();
+    } catch (_) {
+      loadSavedItems();
+    }
+  };
+
+  const setDefaultFavorite = async (favoriteId) => {
+    setQuickFavorites((current) =>
+      current.map((favorite) => ({
+        ...favorite,
+        isDefault: favorite.id === favoriteId,
+      }))
+    );
+
+    try {
+      await authFetchJson(buildApiUrl(`/favorites/${favoriteId}/default`), { method: "PUT" });
+      await loadSavedItems();
+      onFavoritesChanged?.();
     } catch (_) {
       loadSavedItems();
     }
@@ -121,9 +139,20 @@ export default function Sidebar({
           <p className="quick-section-title">Favoriten</p>
           {quickFavorites.length === 0 && <span className="quick-empty">Noch keine Favoriten</span>}
           {quickFavorites.map((favorite) => (
-            <button key={favorite.id} type="button" className="quick-item" onClick={() => selectCity(favorite.cityName)}>
-              {formatCityLocation(favorite.cityName, favorite.countryCode)}
-            </button>
+            <div key={favorite.id} className="quick-favorite-row">
+              <button
+                type="button"
+                className={`quick-star ${favorite.isDefault ? "active" : ""}`}
+                aria-pressed={favorite.isDefault}
+                aria-label={`${formatCityLocation(favorite.cityName, favorite.countryCode)} als Standardstadt wählen`}
+                onClick={() => setDefaultFavorite(favorite.id)}
+              >
+                ★
+              </button>
+              <button type="button" className="quick-item" onClick={() => selectCity(favorite.cityName)}>
+                {formatCityLocation(favorite.cityName, favorite.countryCode)}
+              </button>
+            </div>
           ))}
         </div>
       </div>

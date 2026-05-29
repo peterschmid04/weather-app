@@ -37,6 +37,16 @@
     width: 80px;
     height: 80px;
   }
+  .forecast-placeholder {
+    display: grid;
+    place-items: center;
+    width: 80px;
+    height: 80px;
+    margin-left: 10%;
+    color: var(--muted);
+    font-size: 2rem;
+    font-weight: 800;
+  }
   .forecast-box .day {
     font-size: clamp(1rem, 1.25vw, 1.5rem);
     margin-bottom: 4px;
@@ -63,5 +73,17 @@
 @media (max-width: 1350px) {
   .forecast {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .forecast-container {
+    grid-column: 1 / 5;
+  }
+
+  .forecast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: 0;
+    padding-right: 0;
   }
 }

@@ -13,6 +13,24 @@ import { buildApiUrl } from "./utils/apiUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const DEFAULT_CITY = "Schwenningen";
+const FORECAST_CARD_COUNT = 6;
+const WEEKDAYS_DE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const WEEKDAY_INDEX = {
+  sonntag: 0,
+  sunday: 0,
+  montag: 1,
+  monday: 1,
+  dienstag: 2,
+  tuesday: 2,
+  mittwoch: 3,
+  wednesday: 3,
+  donnerstag: 4,
+  thursday: 4,
+  freitag: 5,
+  friday: 5,
+  samstag: 6,
+  saturday: 6,
+};
 
 class HttpError extends Error {
   constructor(status, message, body) {
@@ -22,6 +40,41 @@ class HttpError extends Error {
     this.body = body;
   }
 }
+
+const getNextWeekday = (weekdayName) => {
+  const index = WEEKDAY_INDEX[(weekdayName || "").toLocaleLowerCase("de-DE")];
+  if (typeof index === "number") {
+    return WEEKDAYS_DE[(index + 1) % WEEKDAYS_DE.length];
+  }
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toLocaleDateString("de-DE", { weekday: "long" });
+};
+
+const buildForecastCards = (forecast) => {
+  const cards = forecast.slice(0, FORECAST_CARD_COUNT).map((day) => ({
+    day: day.day,
+    image: typeof day.id === "number" ? getWeatherImage(day.id) : null,
+    description: day.description || "Nicht verfügbar",
+    minTemp: typeof day.tempMin === "number" ? day.tempMin : null,
+    maxTemp: typeof day.tempMax === "number" ? day.tempMax : null,
+  }));
+
+  let lastDay = cards[cards.length - 1]?.day || new Date().toLocaleDateString("de-DE", { weekday: "long" });
+  while (cards.length < FORECAST_CARD_COUNT) {
+    lastDay = getNextWeekday(lastDay);
+    cards.push({
+      day: lastDay,
+      image: null,
+      description: "Nicht verfügbar",
+      minTemp: null,
+      maxTemp: null,
+    });
+  }
+
+  return cards;
+};
 
 export default function WeatherApp() {
   const [inputCity, setInputCity] = useState(DEFAULT_CITY);
@@ -149,15 +202,7 @@ export default function WeatherApp() {
           ? forecastResult.value
           : [];
 
-        setForecastData(
-          forecast.slice(0, 6).map((day) => ({
-            day: day.day,
-            image: getWeatherImage(day.id),
-            description: day.description,
-            minTemp: day.tempMin,
-            maxTemp: day.tempMax,
-          }))
-        );
+        setForecastData(buildForecastCards(forecast));
 
         const nextHighlights = [
           {
@@ -261,8 +306,36 @@ export default function WeatherApp() {
       return;
     }
 
-    fetchWeatherData(DEFAULT_CITY);
-  }, [isAuthenticated, fetchWeatherData]);
+    let cancelled = false;
+
+    const loadInitialWeather = async () => {
+      let startCity = DEFAULT_CITY;
+
+      try {
+        const defaultFavorite = await authFetchJson(buildApiUrl("/favorites/default"));
+        if (defaultFavorite?.cityName) {
+          startCity = defaultFavorite.cityName;
+        }
+      } catch (error) {
+        if (!(error instanceof HttpError && error.status === 404)) {
+          setSearchMessage("Standard-Favorit konnte nicht geladen werden. Schwenningen wird geladen.");
+        }
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      setInputCity(startCity);
+      fetchWeatherData(startCity);
+    };
+
+    loadInitialWeather();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, authFetchJson, fetchWeatherData]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -294,6 +367,7 @@ export default function WeatherApp() {
         favoritesRefreshKey={favoritesRefreshKey}
         onSelectCity={loadCityFromSavedItem}
         onHistoryChanged={() => setHistoryRefreshKey((current) => current + 1)}
+        onFavoritesChanged={() => setFavoritesRefreshKey((current) => current + 1)}
       />
 
       {weather && (

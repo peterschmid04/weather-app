@@ -12,5 +12,7 @@ public class FavoriteCity
 
     public City City { get; set; } = null!;
 
+    public bool IsDefault { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

@@ -4,6 +4,14 @@ import { translateWeatherDescription, translateWeekday } from "../utils/localiza
 
 const convertTemperature = (temp, isCelsius) => isCelsius ? temp : Number((temp * 9 / 5 + 32).toFixed(1));
 
+const formatTemperature = (temp, isCelsius) => {
+  if (typeof temp !== "number") {
+    return "-";
+  }
+
+  return `${convertTemperature(temp, isCelsius)}°${isCelsius ? "C" : "F"}`;
+};
+
 export default function Forecast({ forecastData, isCelsius }) {
   if (!forecastData || forecastData.length === 0) {
     return null;
@@ -16,9 +24,15 @@ export default function Forecast({ forecastData, isCelsius }) {
           <div key={index} className="forecast-box">
             <p className="day">{translateWeekday(item.day)}</p>
             <p className="forecast-description">{translateWeatherDescription(item.description)}</p>
-            <img src={item.image} alt={translateWeatherDescription(item.description)} />
-            <p className="min-temp">{convertTemperature(item.minTemp, isCelsius)}&deg;{isCelsius ? "C" : "F"} /</p>
-            <p className="max-temp">{convertTemperature(item.maxTemp, isCelsius)}&deg;{isCelsius ? "C" : "F"}</p>
+            {item.image ? (
+              <img src={item.image} alt={translateWeatherDescription(item.description)} />
+            ) : (
+              <div className="forecast-placeholder" aria-label="Keine Vorhersage verfügbar">
+                -
+              </div>
+            )}
+            <p className="min-temp">{formatTemperature(item.minTemp, isCelsius)} /</p>
+            <p className="max-temp">{formatTemperature(item.maxTemp, isCelsius)}</p>
           </div>
         ))}
       </div>

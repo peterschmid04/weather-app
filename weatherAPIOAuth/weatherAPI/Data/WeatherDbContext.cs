@@ -65,6 +65,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
         modelBuilder.Entity<FavoriteCity>(entity =>
         {
             entity.HasKey(favorite => favorite.Id);
+            entity.Property(favorite => favorite.IsDefault).HasDefaultValue(false);
             entity.Property(favorite => favorite.CreatedAtUtc).HasDefaultValueSql("now()");
             entity.HasOne(favorite => favorite.User)
                 .WithMany(user => user.FavoriteCities)
@@ -75,6 +76,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
                 .HasForeignKey(favorite => favorite.CityId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(favorite => new { favorite.UserProfileId, favorite.CityId }).IsUnique();
+            entity.HasIndex(favorite => new { favorite.UserProfileId, favorite.IsDefault });
         });
 
         modelBuilder.Entity<WeatherStation>(entity =>

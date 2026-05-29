@@ -6,6 +6,7 @@
   border-top: 2px solid var(--line);
   color: var(--text);
   white-space: normal;
+  min-width: 0;
 }
 
 .stations-header {
@@ -65,8 +66,10 @@
 
 .station-content {
   display: grid;
-  grid-template-columns: 1fr 1.3fr 1.1fr;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1fr) minmax(320px, 1.1fr);
   gap: 14px;
+  align-items: start;
+  min-width: 0;
 }
 
 .station-list {
@@ -75,6 +78,7 @@
   max-height: 380px;
   min-height: 320px;
   overflow: auto;
+  min-width: 0;
 }
 
 .station-list article {
@@ -84,6 +88,7 @@
   background: var(--panel);
   border-radius: 12px;
   padding: 8px;
+  min-width: 0;
 }
 
 .station-list article.active {
@@ -94,6 +99,9 @@
   display: grid;
   gap: 2px;
   text-align: left;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .station-actions {
@@ -133,6 +141,7 @@
   max-height: 380px;
   min-height: 320px;
   overflow: auto;
+  min-width: 0;
 }
 
 .measurement-list article {
@@ -140,6 +149,8 @@
   background: var(--panel);
   border-radius: 12px;
   padding: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .measurement-list dl {
@@ -162,6 +173,16 @@
   margin: 0;
   font-size: 0.78rem;
   overflow-wrap: anywhere;
+}
+
+@media (max-width: 1450px) {
+  .station-content {
+    grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.2fr);
+  }
+
+  .measurement-list {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 900px) {

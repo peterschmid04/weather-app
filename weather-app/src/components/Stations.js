@@ -276,7 +276,7 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
           )}
           <input value={measurementForm.temperatureC} onChange={(event) => updateMeasurementForm("temperatureC", event.target.value)} placeholder="Temperatur °C" type="number" step="0.1" />
           <input value={measurementForm.humidityPercent} onChange={(event) => updateMeasurementForm("humidityPercent", event.target.value)} placeholder="Luftfeuchte %" type="number" min="0" max="100" step="0.1" />
-          <input value={measurementForm.pressureHpa} onChange={(event) => updateMeasurementForm("pressureHpa", event.target.value)} placeholder="Luftdruck hPa" type="number" step="0.1" />
+          <input value={measurementForm.pressureHpa} onChange={(event) => updateMeasurementForm("pressureHpa", event.target.value)} placeholder="Luftdruck hPa" type="number" min="0" step="0.1" />
           <input value={measurementForm.windSpeedKmh} onChange={(event) => updateMeasurementForm("windSpeedKmh", event.target.value)} placeholder="Wind km/h" type="number" step="0.1" />
           <select value={measurementForm.windDirectionDegrees} onChange={(event) => updateMeasurementForm("windDirectionDegrees", event.target.value)}>
             <option value="">Windrichtung</option>
