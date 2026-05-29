@@ -8,6 +8,12 @@ const emptyFavorite = {
   countryCode: "DE",
 };
 
+const emptyShareForm = {
+  stationId: "",
+  email: "",
+  permission: "write_measurements",
+};
+
 const themes = [
   { id: "graphite", label: "Graphit" },
   { id: "sky", label: "Himmel" },
@@ -55,6 +61,8 @@ export default function UserDataPanel({
   onFavoritesChanged,
 }) {
   const [stations, setStations] = useState([]);
+  const [shares, setShares] = useState({ outgoing: [], incoming: [] });
+  const [shareForm, setShareForm] = useState(emptyShareForm);
   const [favorites, setFavorites] = useState([]);
   const [favoriteForm, setFavoriteForm] = useState(emptyFavorite);
   const [editingFavoriteId, setEditingFavoriteId] = useState("");
@@ -65,12 +73,27 @@ export default function UserDataPanel({
     const nextStations = Array.isArray(data) ? data : [];
     setStations(nextStations);
 
-    if (selectedStationId && nextStations.some((station) => station.id === selectedStationId)) {
-      return;
+    if (!selectedStationId || !nextStations.some((station) => station.id === selectedStationId)) {
+      onSelectedStationChange?.(nextStations[0]?.id || "");
     }
 
-    onSelectedStationChange?.(nextStations[0]?.id || "");
+    setShareForm((current) => {
+      if (current.stationId && nextStations.some((station) => station.id === current.stationId && station.isOwner)) {
+        return current;
+      }
+
+      const nextOwnStation = nextStations.find((station) => station.isOwner);
+      return { ...current, stationId: nextOwnStation?.id || "" };
+    });
   }, [authFetchJson, onSelectedStationChange, selectedStationId]);
+
+  const loadShares = useCallback(async () => {
+    const data = await authFetchJson(buildApiUrl("/station-shares/"));
+    setShares({
+      outgoing: Array.isArray(data?.outgoing) ? data.outgoing : [],
+      incoming: Array.isArray(data?.incoming) ? data.incoming : [],
+    });
+  }, [authFetchJson]);
 
   const loadFavorites = useCallback(async () => {
     const data = await authFetchJson(buildApiUrl("/favorites/"));
@@ -80,7 +103,7 @@ export default function UserDataPanel({
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([loadStations(), loadFavorites()]).then(() => {
+    Promise.allSettled([loadStations(), loadFavorites(), loadShares()]).then(() => {
       if (cancelled) {
         return;
       }
@@ -91,7 +114,7 @@ export default function UserDataPanel({
     return () => {
       cancelled = true;
     };
-  }, [loadStations, loadFavorites, stationsRefreshKey]);
+  }, [loadStations, loadFavorites, loadShares, stationsRefreshKey]);
 
   const saveCurrentFavorite = async () => {
     if (!currentWeather?.city) {
@@ -209,11 +232,61 @@ export default function UserDataPanel({
     onSelectCity(cityName);
   };
 
-  const selectStation = (stationId) => {
-    onSelectedStationChange?.(stationId);
-    const station = stations.find((item) => item.id === stationId);
-    setMessage(station ? `Aktive Wetterstation: ${station.name}` : "");
+  const saveShare = async (event) => {
+    event.preventDefault();
+    if (!shareForm.stationId) {
+      setMessage("Bitte zuerst eine eigene Wetterstation auswählen.");
+      return;
+    }
+
+    if (!shareForm.email.trim()) {
+      setMessage("Bitte E-Mail-Adresse für die Freigabe eintragen.");
+      return;
+    }
+
+    try {
+      await authFetchJson(buildApiUrl("/station-shares/"), {
+        method: "POST",
+        body: JSON.stringify({
+          weatherStationId: shareForm.stationId,
+          email: shareForm.email.trim(),
+          permission: shareForm.permission,
+        }),
+      });
+      setShareForm((current) => ({ ...current, email: "" }));
+      await loadShares();
+      setMessage("Freigabe erstellt. Die andere Person kann sie nach dem Login annehmen.");
+    } catch (error) {
+      if (error?.status === 409) {
+        setMessage("Diese Wetterstation ist bereits an diese E-Mail-Adresse freigegeben.");
+        return;
+      }
+
+      setMessage(getFriendlyErrorMessage(error, error.message || "Freigabe konnte nicht erstellt werden."));
+    }
   };
+
+  const acceptShare = async (shareId) => {
+    try {
+      await authFetchJson(buildApiUrl(`/station-shares/${shareId}/accept`), { method: "POST" });
+      await Promise.all([loadShares(), loadStations()]);
+      setMessage("Freigabe angenommen.");
+    } catch (error) {
+      setMessage(getFriendlyErrorMessage(error, error.message || "Freigabe konnte nicht angenommen werden."));
+    }
+  };
+
+  const deleteShare = async (shareId) => {
+    try {
+      await authFetchJson(buildApiUrl(`/station-shares/${shareId}`), { method: "DELETE" });
+      await Promise.all([loadShares(), loadStations()]);
+      setMessage("Freigabe entfernt.");
+    } catch (error) {
+      setMessage(getFriendlyErrorMessage(error, error.message || "Freigabe konnte nicht entfernt werden."));
+    }
+  };
+
+  const ownStations = stations.filter((station) => station.isOwner);
 
   return (
     <section className="user-data">
@@ -240,23 +313,74 @@ export default function UserDataPanel({
       <div className="user-data-grid">
         <div className="saved-panel">
           <div className="panel-title">
-            <h3>Aktive Wetterstation</h3>
+            <h3>Wetterstationen teilen</h3>
           </div>
-          <div className="saved-list station-short-list">
-            {stations.length === 0 && <p className="empty">Noch keine Wetterstation gespeichert.</p>}
-            {stations.map((station) => (
-              <article key={station.id} className={station.id === selectedStationId ? "active" : ""}>
-                <button type="button" onClick={() => selectStation(station.id)}>
+
+          <form className="share-form" onSubmit={saveShare}>
+            <select
+              value={shareForm.stationId}
+              onChange={(event) => setShareForm((current) => ({ ...current, stationId: event.target.value }))}
+            >
+              <option value="">Eigene Station auswählen</option>
+              {ownStations.map((station) => (
+                <option key={station.id} value={station.id}>
                   {station.name}
-                </button>
-                <small>{formatCityLocation(station.cityName, station.countryCode)}</small>
-                {station.latestMeasurement && (
-                  <small>
-                    Letzter Messwert: {station.latestMeasurement.temperatureC ?? "-"} °C
-                  </small>
-                )}
-              </article>
-            ))}
+                </option>
+              ))}
+            </select>
+            <input
+              value={shareForm.email}
+              onChange={(event) => setShareForm((current) => ({ ...current, email: event.target.value }))}
+              placeholder="E-Mail des Auth0-Nutzers"
+              type="email"
+            />
+            <select
+              value={shareForm.permission}
+              onChange={(event) => setShareForm((current) => ({ ...current, permission: event.target.value }))}
+            >
+              <option value="write_measurements">Messwerte eintragen</option>
+              <option value="read">Nur ansehen</option>
+            </select>
+            <button type="submit">Teilen</button>
+          </form>
+
+          <div className="share-sections">
+            <div className="share-section">
+              <h4>Eingehende Freigaben</h4>
+              {shares.incoming.length === 0 && <p className="empty">Keine Einladung erhalten.</p>}
+              {shares.incoming.map((share) => (
+                <article key={share.id} className="share-item">
+                  <strong>{share.stationName}</strong>
+                  <small>Von {share.ownerName}</small>
+                  <small>Status: {share.status === "accepted" ? "angenommen" : "offen"}</small>
+                  <div className="row-actions">
+                    {share.status !== "accepted" && (
+                      <button type="button" className="quiet" onClick={() => acceptShare(share.id)}>
+                        Annehmen
+                      </button>
+                    )}
+                    <button type="button" className="quiet" onClick={() => deleteShare(share.id)}>
+                      Löschen
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="share-section">
+              <h4>Von mir geteilt</h4>
+              {shares.outgoing.length === 0 && <p className="empty">Noch nichts geteilt.</p>}
+              {shares.outgoing.map((share) => (
+                <article key={share.id} className="share-item">
+                  <strong>{share.stationName}</strong>
+                  <small>{share.sharedWithEmail}</small>
+                  <small>Status: {share.status === "accepted" ? "angenommen" : "offen"}</small>
+                  <button type="button" className="quiet" onClick={() => deleteShare(share.id)}>
+                    Freigabe löschen
+                  </button>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
 

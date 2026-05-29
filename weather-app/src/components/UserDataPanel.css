@@ -43,6 +43,8 @@
 .theme-picker button,
 .panel-title button,
 .favorite-form button,
+.share-form button,
+.share-item button,
 .saved-list button {
   border: 1px solid var(--line);
   background: var(--control);
@@ -87,7 +89,16 @@
   margin-bottom: 10px;
 }
 
-.favorite-form input {
+.share-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.favorite-form input,
+.share-form input,
+.share-form select {
   border: 1px solid var(--line);
   background: var(--input);
   color: var(--text);
@@ -97,6 +108,35 @@
   padding: 6px 8px;
   border-radius: 8px;
   min-width: 0;
+}
+
+.share-form button {
+  grid-column: 1 / -1;
+}
+
+.share-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.share-section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.share-section h4 {
+  font-size: 0.9rem;
+}
+
+.share-item {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px;
 }
 
 .saved-list {
@@ -143,6 +183,8 @@
   }
 
   .user-data-grid,
+  .share-form,
+  .share-sections,
   .favorite-form,
   .saved-list article {
     grid-template-columns: 1fr;

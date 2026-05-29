@@ -473,6 +473,13 @@ Eigene Wetterstationen:
 - `GET /stations/{stationId}/measurements`
 - `POST /stations/{stationId}/measurements`
 
+Wetterstationen teilen:
+
+- `GET /station-shares`
+- `POST /station-shares`
+- `POST /station-shares/{shareId}/accept`
+- `DELETE /station-shares/{shareId}`
+
 Alle fachlichen Endpunkte sind durch Auth0 JWT geschützt. Ohne gültigen Bearer Token antwortet das Backend mit `401`.
 
 ## Datenbankmodell
@@ -488,57 +495,86 @@ Tabellen:
 - `WeatherRequestLogs`
 - `WeatherStations`
 - `WeatherStationMeasurements`
+- `WeatherStationShares`
 - `UserThemePreferences`
 
 Normalisierung:
 
-- Nutzerprofile enthalten nur lokale Auth0-Metadaten, keine Passwörter.
+- Nutzerprofile enthalten nur lokale Auth0-Metadaten wie Subject und E-Mail, keine Passwörter.
 - Städte liegen zentral in `Cities`.
 - Favoriten referenzieren Nutzer und Stadt.
 - Suchverlauf referenziert Nutzer und Stadt.
 - Wetterstationen referenzieren Nutzer und optional Stadt.
 - Messwerte referenzieren Wetterstationen.
+- Freigaben referenzieren Wetterstation, Besitzer und optional den eingeladenen Auth0-Nutzer.
 - Theme-Einstellungen referenzieren Nutzer.
 
 Dadurch werden Wiederholungen reduziert und die Datenstruktur erfüllt die Anforderungen der ersten drei Normalformen für den Projektumfang.
 
-## Offenes Konzept: Wetterstationen teilen
+## Wetterstationen teilen
 
-Das Teilen von Wetterstationen ist als Erweiterung geplant, aber noch nicht produktiv umgesetzt. Auth0 bleibt dabei für Identität, Login und globale Rollen zuständig. Die App-Datenbank würde nur speichern, welcher Auth0-Nutzer Zugriff auf welche Wetterstation hat.
+Das Teilen von Wetterstationen ist umgesetzt. Auth0 bleibt dabei für Identität, Login und globale Rollen zuständig. Die App-Datenbank speichert nur, welcher Auth0-Nutzer Zugriff auf welche Wetterstation hat.
 
-Geplantes Datenmodell:
+Datenmodell:
 
-- Neue Tabelle `WeatherStationShares`.
 - `WeatherStationShares.Id` als Primärschlüssel.
 - `WeatherStationShares.WeatherStationId` als Fremdschlüssel auf `WeatherStations`.
 - `WeatherStationShares.OwnerUserProfileId` als Besitzer der Station.
-- `WeatherStationShares.SharedWithUserProfileId` als berechtigter Nutzer.
-- `WeatherStationShares.Permission` z. B. `read`, `write_measurements`, `manage`.
+- `WeatherStationShares.SharedWithUserProfileId` als berechtigter Nutzer, sobald die Einladung einem bekannten Auth0-Nutzer zugeordnet werden kann.
+- `WeatherStationShares.SharedWithEmail` und `NormalizedSharedWithEmail` für Einladungen per E-Mail.
+- `WeatherStationShares.Permission`, aktuell `read` oder `write_measurements`.
+- `WeatherStationShares.Status`, aktuell `pending` oder `accepted`.
 - `WeatherStationShares.CreatedAtUtc`.
-- Optional `ExpiresAtUtc`, falls eine Freigabe zeitlich begrenzt werden soll.
+- `WeatherStationShares.AcceptedAtUtc`, sobald die Freigabe angenommen wurde.
 
-Geplanter Workflow:
+Workflow:
 
 1. Nutzer A besitzt eine Wetterstation.
-2. Nutzer A gibt die Station für Nutzer B frei.
-3. Nutzer B darf je nach Freigabe Messwerte eintragen, aber die Station nicht besitzen.
-4. Die Freigabe kann für Urlaubsvertretung, Projektvertretung, Wartung, Teamarbeit oder Lehr-/Demo-Szenarien genutzt werden.
-5. Nutzer A kann die Freigabe später wieder entfernen.
+2. Nutzer A gibt die Station über die E-Mail-Adresse von Nutzer B frei.
+3. Nutzer B sieht die Einladung nach dem Auth0-Login und kann sie annehmen oder löschen.
+4. Nutzer B darf je nach Freigabe Messwerte eintragen oder nur ansehen, besitzt die Station aber nicht.
+5. Nutzer A kann die Freigabe jederzeit wieder löschen.
 
-Auth0-Nutzer finden:
+Einsatzfälle:
 
-- Einfacher Ansatz: Nutzer B wird über E-Mail-Adresse eingeladen. Die App speichert nach dem ersten Login die Auth0 User-ID in `UserProfiles`.
-- Erweiterter Ansatz: Auth0 Organizations und Einladungen nutzen, wenn Teams oder Gruppen sauber in Auth0 verwaltet werden sollen.
-- Alternative: Einladung in der App erzeugen und erst beim Login von Nutzer B an dessen Auth0 User-ID binden.
+- Urlaubsvertretung für Messwerterfassung.
+- Projektvertretung.
+- Wartung durch andere Nutzer.
+- Teamarbeit.
+- Lehr- und Demo-Szenarien.
 
-Geplante Endpunkte:
+Auth0-Bezug:
 
-- `GET /stations/{stationId}/shares`
-- `POST /stations/{stationId}/shares`
-- `PUT /stations/{stationId}/shares/{shareId}`
-- `DELETE /stations/{stationId}/shares/{shareId}`
+- Auth0 liefert die Identität und E-Mail-Adresse über das JWT.
+- Die App speichert keine Passwörter.
+- Die App sucht keine Nutzer direkt in Auth0, sondern bindet Freigaben an die E-Mail-Adresse aus dem Auth0-Profil.
+- Wenn der eingeladene Nutzer schon einmal eingeloggt war, kann die Freigabe direkt seinem `UserProfile` zugeordnet werden.
+- Wenn nicht, bleibt die Freigabe offen und wird nach dem Login über die E-Mail-Adresse gefunden.
 
-Diese Erweiterung wäre ein gutes Extra-Feature, bleibt aber aktuell bewusst offen, damit der Prototyp stabil bleibt.
+Aktuelle Endpunkte:
+
+- `GET /station-shares`: eigene ausgehende und eingehende Freigaben anzeigen.
+- `POST /station-shares`: eigene Wetterstation an eine E-Mail-Adresse freigeben.
+- `POST /station-shares/{shareId}/accept`: eingehende Freigabe annehmen.
+- `DELETE /station-shares/{shareId}`: Freigabe löschen, ablehnen oder zurückziehen.
+
+Offene Erweiterungsideen:
+
+- Ablaufdatum für zeitlich begrenzte Freigaben.
+- Auth0 Organizations für Teams.
+- Rollen wie `station_admin`, wenn Stationen später gruppenweise verwaltet werden sollen.
+- Benachrichtigungen per E-Mail.
+
+## Offenes Konzept: Rollenbasierte Admin-/Region-Ansicht
+
+Die Region-Freigabe über Auth0 Permissions ist umgesetzt. Eine separate Admin-Oberfläche ist als Extra-Feature möglich, aber noch nicht Teil des Prototyps.
+
+Mögliche Admin-/Region-Ansicht:
+
+- Admin sieht Nutzerrollen und Region-Freigaben.
+- Admin kann prüfen, ob Nutzer `region:all`, `region:eu` oder nur Deutschland-Zugriff haben.
+- Frontend könnte je nach Permission Hinweise oder Filter anzeigen.
+- Backend bleibt die entscheidende Sicherheitsinstanz, weil es `RegionAuthorization` serverseitig prüft.
 
 ## Frontend-Funktionen
 
@@ -552,13 +588,16 @@ Diese Erweiterung wäre ein gutes Extra-Feature, bleibt aber aktuell bewusst off
 - Favoriten mit CRUD.
 - Eigene Wetterstationen mit CRUD.
 - Eigene Messwerte pro Wetterstation.
+- Wetterstationen per E-Mail an andere Auth0-Nutzer freigeben.
+- Geteilte Wetterstationen annehmen oder löschen.
+- Messwerte für freigegebene Stationen eintragen, wenn die Freigabe das erlaubt.
 - Farbthemes, die pro Nutzer in PostgreSQL gespeichert werden.
 - Deutsche Oberfläche.
 - Fehleranzeigen für 401, 403, 404, 409, 429 und 500.
 
 ## Navigation und Routing
 
-Für den aktuellen Prototyp ist kein zusätzliches React-Routing nötig. Die App ist ein authentifiziertes Single-Page-Dashboard: Wetteranzeige, Favoriten, aktive Wetterstation, Messwerte und Themes liegen bewusst auf einer Seite, weil die Prüfungsanforderung die Kommunikation zwischen Frontend, Backend und Datenbank zeigen soll. Auth0 übernimmt den externen Login-/Logout-Redirect; innerhalb der App reichen Panels und Komponenten statt eigener Routen.
+Für den aktuellen Prototyp ist kein zusätzliches React-Routing nötig. Die App ist ein authentifiziertes Single-Page-Dashboard: Wetteranzeige, Favoriten, Wetterstationen, Freigaben, Messwerte und Themes liegen bewusst auf einer Seite, weil die Prüfungsanforderung die Kommunikation zwischen Frontend, Backend und Datenbank zeigen soll. Auth0 übernimmt den externen Login-/Logout-Redirect; innerhalb der App reichen Panels und Komponenten statt eigener Routen.
 
 ## Architektur
 

@@ -135,10 +135,20 @@ namespace weatherAPI.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Auth0Subject")
                         .IsUnique();
+
+                    b.HasIndex("NormalizedEmail");
 
                     b.ToTable("UserProfiles");
                 });
@@ -307,6 +317,63 @@ namespace weatherAPI.Migrations
                     b.ToTable("WeatherStationMeasurements");
                 });
 
+            modelBuilder.Entity("weatherAPI.Models.Database.WeatherStationShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcceptedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("NormalizedSharedWithEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<Guid>("OwnerUserProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SharedWithEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<Guid?>("SharedWithUserProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("WeatherStationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedSharedWithEmail");
+
+                    b.HasIndex("OwnerUserProfileId");
+
+                    b.HasIndex("SharedWithUserProfileId");
+
+                    b.HasIndex("WeatherStationId", "NormalizedSharedWithEmail")
+                        .IsUnique();
+
+                    b.ToTable("WeatherStationShares");
+                });
+
             modelBuilder.Entity("weatherAPI.Models.Database.FavoriteCity", b =>
                 {
                     b.HasOne("weatherAPI.Models.Database.City", "City")
@@ -403,6 +470,32 @@ namespace weatherAPI.Migrations
                     b.Navigation("WeatherStation");
                 });
 
+            modelBuilder.Entity("weatherAPI.Models.Database.WeatherStationShare", b =>
+                {
+                    b.HasOne("weatherAPI.Models.Database.UserProfile", "Owner")
+                        .WithMany("OwnedWeatherStationShares")
+                        .HasForeignKey("OwnerUserProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("weatherAPI.Models.Database.UserProfile", "SharedWithUser")
+                        .WithMany("ReceivedWeatherStationShares")
+                        .HasForeignKey("SharedWithUserProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("weatherAPI.Models.Database.WeatherStation", "WeatherStation")
+                        .WithMany("Shares")
+                        .HasForeignKey("WeatherStationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("SharedWithUser");
+
+                    b.Navigation("WeatherStation");
+                });
+
             modelBuilder.Entity("weatherAPI.Models.Database.City", b =>
                 {
                     b.Navigation("FavoriteCities");
@@ -418,6 +511,10 @@ namespace weatherAPI.Migrations
                 {
                     b.Navigation("FavoriteCities");
 
+                    b.Navigation("OwnedWeatherStationShares");
+
+                    b.Navigation("ReceivedWeatherStationShares");
+
                     b.Navigation("SearchHistory");
 
                     b.Navigation("ThemePreference");
@@ -430,6 +527,8 @@ namespace weatherAPI.Migrations
             modelBuilder.Entity("weatherAPI.Models.Database.WeatherStation", b =>
                 {
                     b.Navigation("Measurements");
+
+                    b.Navigation("Shares");
                 });
 #pragma warning restore 612, 618
         }
