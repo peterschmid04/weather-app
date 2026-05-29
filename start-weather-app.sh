@@ -102,8 +102,13 @@ AUTH0_CONNECTION_GITHUB="github"
 OPENWEATHERMAP_API_KEY="$(prompt_secret "OPENWEATHERMAP_API_KEY" "true")"
 LOGS="false"
 LOG_DIRECTORY="/workspace/logs"
-NGROK_AUTHTOKEN=""
-NGROK_URL="https://relaxed-yak-pleasantly.ngrok-free.app"
+COMPOSE_PROFILES=""
+NGROK_AUTHTOKEN="$(prompt_secret "NGROK_AUTHTOKEN optional, press Enter to skip" "false")"
+NGROK_URL=""
+if [ -n "$NGROK_AUTHTOKEN" ]; then
+  NGROK_URL="$(prompt_value "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app" "" "true")"
+  COMPOSE_PROFILES="ngrok"
+fi
 
 for pair in \
   "POSTGRES_DB=$POSTGRES_DB" \
@@ -123,6 +128,7 @@ for pair in \
   "OPENWEATHERMAP_API_KEY=$OPENWEATHERMAP_API_KEY" \
   "LOGS=$LOGS" \
   "LOG_DIRECTORY=$LOG_DIRECTORY" \
+  "COMPOSE_PROFILES=$COMPOSE_PROFILES" \
   "NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN" \
   "NGROK_URL=$NGROK_URL"
 do
@@ -154,6 +160,7 @@ done
   echo "LOGS=$LOGS"
   echo "LOG_DIRECTORY=$LOG_DIRECTORY"
   echo ""
+  echo "COMPOSE_PROFILES=$COMPOSE_PROFILES"
   echo "NGROK_AUTHTOKEN=$NGROK_AUTHTOKEN"
   echo "NGROK_URL=$NGROK_URL"
 } > .env

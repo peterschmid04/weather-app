@@ -115,8 +115,9 @@ OPENWEATHERMAP_API_KEY=your-openweathermap-api-key
 LOGS=false
 LOG_DIRECTORY=/workspace/logs
 
-NGROK_AUTHTOKEN=your-ngrok-authtoken
-NGROK_URL=https://relaxed-yak-pleasantly.ngrok-free.app
+COMPOSE_PROFILES=
+NGROK_AUTHTOKEN=
+NGROK_URL=
 ```
 
 Wichtig:
@@ -159,13 +160,13 @@ Wenn ngrok genutzt wird, zusätzlich die öffentliche ngrok URL eintragen:
 
 ```text
 Allowed Callback URLs:
-http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+http://localhost:3000, https://your-ngrok-url.ngrok-free.app
 
 Allowed Logout URLs:
-http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+http://localhost:3000, https://your-ngrok-url.ngrok-free.app
 
 Allowed Web Origins:
-http://localhost:3000, https://relaxed-yak-pleasantly.ngrok-free.app
+http://localhost:3000, https://your-ngrok-url.ngrok-free.app
 ```
 
 Wenn Auth0 `Callback URL mismatch` anzeigt, sendet das Frontend eine `redirect_uri`, die in diesen Feldern noch nicht erlaubt ist. Lokal ist das normalerweise:
@@ -177,10 +178,10 @@ http://localhost:3000
 Mit ngrok ist es die öffentliche URL aus `NGROK_URL`, zum Beispiel:
 
 ```text
-https://relaxed-yak-pleasantly.ngrok-free.app
+https://your-ngrok-url.ngrok-free.app
 ```
 
-Für den Tenant `dev-021n1l5l5ftyrnjp` bedeutet das: In der Auth0 Application genau diese lokale und/oder ngrok-URL bei `Allowed Callback URLs`, `Allowed Logout URLs` und `Allowed Web Origins` eintragen. Danach `Save Changes` drücken und den Login neu starten.
+Für deinen eigenen Auth0-Tenant bedeutet das: In der Auth0 Application genau deine lokale URL und optional deine eigene ngrok-URL bei `Allowed Callback URLs`, `Allowed Logout URLs` und `Allowed Web Origins` eintragen. Danach `Save Changes` drücken und den Login neu starten.
 
 ### 2. Auth0 API / Audience
 
@@ -245,10 +246,10 @@ https://AUTH0_DOMAIN/login/callback
 Beispiel mit deinem Auth0-Tenant:
 
 ```text
-https://dev-021n1l5l5ftyrnjp.<region>.auth0.com/login/callback
+https://your-tenant.region.auth0.com/login/callback
 ```
 
-`<region>` durch die Region aus `AUTH0_DOMAIN` ersetzen, zum Beispiel `eu` oder `us`. Danach in Auth0 unter `Authentication -> Social -> Google` die Google Client ID und das Google Client Secret eintragen und die Weather-App im Tab `Applications` aktivieren.
+`your-tenant.region.auth0.com` durch deinen echten Wert aus `AUTH0_DOMAIN` ersetzen. Danach in Auth0 unter `Authentication -> Social -> Google` die Google Client ID und das Google Client Secret eintragen und die Weather-App im Tab `Applications` aktivieren.
 
 Das Projekt nutzt im Frontend die Auth0 React SDK. Diese nutzt für SPAs den Authorization Code Flow mit PKCE. Das Backend validiert danach das JWT als `Authorization: Bearer <token>` mit ASP.NET Core JWT Bearer Authentication.
 
@@ -289,6 +290,8 @@ OPENWEATHERMAP_API_KEY=dein-openweathermap-key
 
 Der Key wird nur an das Backend übergeben. Das Frontend bekommt den Key nicht direkt.
 
+Wenn `OPENWEATHERMAP_API_KEY` fehlt oder noch auf einem Platzhalter steht, startet das Backend absichtlich nicht. So merkt man die Fehlkonfiguration sofort beim Start und nicht erst später bei der ersten Wetterabfrage.
+
 ## Docker Compose Services
 
 Docker Compose startet:
@@ -297,7 +300,7 @@ Docker Compose startet:
 - `backend`: ASP.NET Core API auf Port `5122`.
 - `db`: PostgreSQL auf Port `5432`.
 - `pgadmin`: pgAdmin auf Port `5050`.
-- `ngrok`: optionales Profil, nur bei Bedarf.
+- `ngrok`: optional, startet nur wenn `COMPOSE_PROFILES=ngrok` in `.env` gesetzt ist.
 
 Start:
 
@@ -396,15 +399,18 @@ ngrok ist nützlich, wenn das lokale Frontend über eine öffentliche HTTPS-URL 
 In `.env`:
 
 ```env
+COMPOSE_PROFILES=ngrok
 NGROK_AUTHTOKEN=dein-ngrok-authtoken
-NGROK_URL=https://relaxed-yak-pleasantly.ngrok-free.app
+NGROK_URL=https://your-ngrok-url.ngrok-free.app
 ```
 
-Start mit ngrok:
+Start mit oder ohne ngrok ist immer derselbe Befehl:
 
 ```sh
-docker compose --profile ngrok up -d
+docker compose up -d
 ```
+
+Wenn `COMPOSE_PROFILES` leer ist, wird der ngrok-Service von Docker Compose nicht gestartet und das ngrok-Image wird nicht benötigt. Wenn `COMPOSE_PROFILES=ngrok` gesetzt ist, startet Docker Compose den ngrok-Service mit und zieht das Image bei Bedarf.
 
 Compose wartet dabei auf den Frontend-Healthcheck. ngrok startet also erst, wenn der React-Service im Container auf `http://localhost:3000` antwortet. Das verhindert, dass der Tunnel zu früh startet, während `npm ci` oder `npm start` noch laufen.
 
@@ -412,13 +418,13 @@ Wenn Docker Compose schon läuft:
 
 ```sh
 docker compose down
-docker compose --profile ngrok up -d
+docker compose up -d
 ```
 
 ngrok leitet dann auf den Frontend-Service im Docker-Netzwerk weiter:
 
 ```text
-https://relaxed-yak-pleasantly.ngrok-free.app -> frontend:3000
+https://your-ngrok-url.ngrok-free.app -> frontend:3000
 ```
 
 API-Aufrufe laufen im Browser relativ zur aktuellen Seite, also zum Beispiel `/weather` statt `http://localhost:5122/weather`. Der React-Dev-Server leitet diese Requests im Docker-Netzwerk an `backend:5122` weiter. Dadurch funktioniert die Suche auch, wenn jemand die App extern über die ngrok-URL öffnet. `REACT_APP_API_BASE_URL` deshalb für Docker/ngrok leer lassen.
