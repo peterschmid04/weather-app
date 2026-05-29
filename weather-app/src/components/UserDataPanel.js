@@ -207,6 +207,26 @@ export default function UserDataPanel({
     }
   };
 
+  const setDefaultFavorite = async (favoriteId) => {
+    const previousFavorites = favorites;
+    setFavorites((current) =>
+      current.map((favorite) => ({
+        ...favorite,
+        isDefault: favorite.id === favoriteId,
+      }))
+    );
+
+    try {
+      await authFetchJson(buildApiUrl(`/favorites/${favoriteId}/default`), { method: "PUT" });
+      await loadFavorites();
+      onFavoritesChanged?.();
+      setMessage("Standardstadt gespeichert.");
+    } catch (error) {
+      setFavorites(previousFavorites);
+      setMessage(getFriendlyErrorMessage(error, "Standardstadt konnte nicht gespeichert werden."));
+    }
+  };
+
   const changeTheme = async (nextTheme) => {
     if (nextTheme === themeName) {
       return;
@@ -432,7 +452,17 @@ export default function UserDataPanel({
           <div className="saved-list">
             {favorites.length === 0 && <p className="empty">Noch keine Favoriten gespeichert.</p>}
             {favorites.map((favorite) => (
-              <article key={favorite.id}>
+              <article key={favorite.id} className={favorite.isDefault ? "default-favorite" : ""}>
+                <button
+                  type="button"
+                  className={`favorite-star ${favorite.isDefault ? "active" : ""}`}
+                  aria-pressed={favorite.isDefault}
+                  aria-label={`${formatCityLocation(favorite.cityName, favorite.countryCode)} als Standardstadt wählen`}
+                  title="Als Standardstadt laden"
+                  onClick={() => setDefaultFavorite(favorite.id)}
+                >
+                  ★
+                </button>
                 <button type="button" onClick={() => loadCity(favorite.cityName)}>
                   {formatCityLocation(favorite.cityName, favorite.countryCode)}
                 </button>

@@ -21,6 +21,7 @@ public record FavoriteCityResponse(
     string CountryCode,
     double? Latitude,
     double? Longitude,
+    bool IsDefault,
     DateTime CreatedAtUtc);
 
 public record ThemePreferenceResponse(string ThemeName);

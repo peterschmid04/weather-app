@@ -88,13 +88,19 @@
   cursor: pointer;
 }
 
-.quick-history-row {
+.quick-history-row,
+.quick-favorite-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
 }
 
-.quick-delete {
+.quick-favorite-row {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.quick-delete,
+.quick-star {
   min-height: 34px;
   padding: 7px 9px;
   border: 1px solid var(--line);
@@ -107,8 +113,21 @@
   cursor: pointer;
 }
 
+.quick-star {
+  width: 34px;
+  padding: 0;
+  color: var(--muted);
+}
+
+.quick-star.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
 .quick-item:hover,
-.quick-delete:hover {
+.quick-delete:hover,
+.quick-star:hover {
   border-color: var(--accent);
   background: var(--button-bg);
 }

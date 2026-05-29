@@ -400,17 +400,44 @@ favorites.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext d
     var result = await db.FavoriteCities
         .AsNoTracking()
         .Where(favorite => favorite.UserProfileId == user.Id)
-        .OrderBy(favorite => favorite.City.Name)
+        .OrderByDescending(favorite => favorite.IsDefault)
+        .ThenBy(favorite => favorite.City.Name)
         .Select(favorite => new FavoriteCityResponse(
             favorite.Id,
             favorite.City.Name,
             favorite.City.CountryCode,
             favorite.City.Latitude,
             favorite.City.Longitude,
+            favorite.IsDefault,
             favorite.CreatedAtUtc))
         .ToListAsync();
 
     return Results.Ok(result);
+});
+
+favorites.MapGet("/default", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await db.FavoriteCities
+        .AsNoTracking()
+        .Where(favorite => favorite.UserProfileId == user.Id && favorite.IsDefault)
+        .OrderByDescending(favorite => favorite.CreatedAtUtc)
+        .Select(favorite => new FavoriteCityResponse(
+            favorite.Id,
+            favorite.City.Name,
+            favorite.City.CountryCode,
+            favorite.City.Latitude,
+            favorite.City.Longitude,
+            favorite.IsDefault,
+            favorite.CreatedAtUtc))
+        .FirstOrDefaultAsync();
+
+    return result is null ? Results.NotFound(new { message = "No default favorite set." }) : Results.Ok(result);
 });
 
 favorites.MapPost("/", async (
@@ -455,6 +482,7 @@ favorites.MapPost("/", async (
         city.CountryCode,
         city.Latitude,
         city.Longitude,
+        favorite.IsDefault,
         favorite.CreatedAtUtc));
 });
 
@@ -505,7 +533,47 @@ favorites.MapPut("/{favoriteId:guid}", async (
         city.CountryCode,
         city.Latitude,
         city.Longitude,
+        favorite.IsDefault,
         favorite.CreatedAtUtc));
+});
+
+favorites.MapPut("/{favoriteId:guid}/default", async (
+    HttpContext http,
+    Guid favoriteId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var favoritesForUser = await db.FavoriteCities
+        .Include(favorite => favorite.City)
+        .Where(favorite => favorite.UserProfileId == user.Id)
+        .ToListAsync();
+
+    var selectedFavorite = favoritesForUser.SingleOrDefault(favorite => favorite.Id == favoriteId);
+    if (selectedFavorite is null)
+    {
+        return Results.NotFound(new { message = "Favorite not found." });
+    }
+
+    foreach (var favorite in favoritesForUser)
+    {
+        favorite.IsDefault = favorite.Id == favoriteId;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new FavoriteCityResponse(
+        selectedFavorite.Id,
+        selectedFavorite.City.Name,
+        selectedFavorite.City.CountryCode,
+        selectedFavorite.City.Latitude,
+        selectedFavorite.City.Longitude,
+        selectedFavorite.IsDefault,
+        selectedFavorite.CreatedAtUtc));
 });
 
 favorites.MapDelete("/{favoriteId:guid}", async (
@@ -1322,6 +1390,11 @@ static string? ValidateMeasurementRequest(CreateWeatherStationMeasurementRequest
     if (request.HumidityPercent is < 0 or > 100)
     {
         return "Humidity must be between 0 and 100 percent.";
+    }
+
+    if (request.PressureHpa is < 0)
+    {
+        return "Luftdruck darf nicht kleiner als 0 sein.";
     }
 
     if (request.WindDirectionDegrees is < 0 or > 360)

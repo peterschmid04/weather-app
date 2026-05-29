@@ -71,6 +71,11 @@ namespace weatherAPI.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("UserProfileId")
                         .HasColumnType("uuid");
 
@@ -80,6 +85,8 @@ namespace weatherAPI.Migrations
 
                     b.HasIndex("UserProfileId", "CityId")
                         .IsUnique();
+
+                    b.HasIndex("UserProfileId", "IsDefault");
 
                     b.ToTable("FavoriteCities");
                 });
