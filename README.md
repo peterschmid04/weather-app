@@ -48,14 +48,34 @@ Windows PowerShell direkt:
 macOS oder Linux:
 
 ```sh
-sh ./start-weather-app.sh
+bash ./start-weather-app.sh
 ```
 
-Wenn `.env` bereits existiert, fragen die Scripts nichts erneut ab und starten direkt:
+Die Startdateien fragen nur die benoetigten Werte ab: Auth0 Domain, Auth0 Audience, Auth0 ClientId, OpenWeatherMap API Key und optional ngrok. PostgreSQL-Datenbankname, PostgreSQL-User, sichere lokale Passwoerter und Auth0-Connection-Namen werden automatisch gesetzt.
+
+Wenn `.env` bereits existiert, wird sie validiert, aber nicht neu geschrieben. Ist sie gueltig, starten die Scripts direkt Docker Compose:
 
 ```sh
 docker compose up -d
 ```
+
+Ist `.env` unvollstaendig oder enthaelt noch Platzhalter wie `change-me-for-local-development`, brechen die Scripts mit einer klaren Meldung ab. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird spaeter doch eine bestehende `.env` ueberschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
+
+Zusatzoptionen:
+
+```sh
+bash ./start-weather-app.sh --validate-only
+bash ./start-weather-app.sh --with-ngrok
+```
+
+PowerShell:
+
+```powershell
+.\start-weather-app.ps1 -ValidateOnly
+.\start-weather-app.ps1 -WithNgrok
+```
+
+Hinweis fuer macOS/Linux: Falls die Shell-Datei nicht ausfuehrbar ist, kann man sie weiter mit `bash ./start-weather-app.sh` starten. Fuer direkten Start per `./start-weather-app.sh` einmalig `chmod +x ./start-weather-app.sh` ausfuehren. Die Datei ist fuer LF-Zeilenenden gedacht.
 
 ## Manuelle Einrichtung
 

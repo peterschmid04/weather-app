@@ -106,7 +106,7 @@ builder.Services.AddRateLimiter(options =>
                 {
                     PermitLimit = 100,
                     Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
+                    QueueLimit = 25,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst
                 })),
         PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -116,7 +116,7 @@ builder.Services.AddRateLimiter(options =>
                 {
                     PermitLimit = 1000,
                     Window = TimeSpan.FromHours(1),
-                    QueueLimit = 0,
+                    QueueLimit = 50,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst
                 })));
 });
