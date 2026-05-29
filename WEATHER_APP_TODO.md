@@ -18,7 +18,7 @@
 
 - [x] Nach den neuen Features kompletten frischen Start testen: `docker compose down`, dann `docker compose up -d`.
 - [x] Nach den neuen Features testen, dass Frontend, Backend, DB und pgAdmin gemeinsam starten.
-- [ ] Nach neuen Features pruefen: frischer Clone plus `.env` plus `docker compose up -d` reicht.
+- [x] Nach neuen Features pruefen: frischer Clone plus `.env` plus `docker compose up -d` reicht.
 
 ## Fachliche Funktionen testen
 
