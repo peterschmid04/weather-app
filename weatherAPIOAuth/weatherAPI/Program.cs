@@ -273,7 +273,7 @@ app.MapGet("/my-profile", async (HttpContext http, [FromServices] WeatherDbConte
             user.Id,
             user.Auth0Subject,
             http.User.FindFirst("name")?.Value,
-            http.User.FindFirst(ClaimTypes.Email)?.Value ?? http.User.FindFirst("email")?.Value));
+            user.Email));
 });
 
 app.MapGet("/access", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -1124,8 +1124,8 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
     }
 
     var user = await db.UserProfiles.SingleOrDefaultAsync(existingUser => existingUser.Auth0Subject == subject);
-    var displayName = http.User.FindFirst("name")?.Value ?? http.User.FindFirst(ClaimTypes.Email)?.Value;
-    var email = http.User.FindFirst(ClaimTypes.Email)?.Value ?? http.User.FindFirst("email")?.Value;
+    var email = GetEmailFromClaims(http);
+    var displayName = http.User.FindFirst("name")?.Value ?? email;
     var normalizedEmail = NormalizeEmailOrNull(email);
 
     if (user is not null)
@@ -1137,12 +1137,14 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
             changed = true;
         }
 
-        if (!string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(email) && !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
         {
-            user.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+            user.Email = email.Trim();
             user.NormalizedEmail = normalizedEmail;
             changed = true;
         }
+
+        changed = await LinkPendingSharesToUserAsync(db, user) || changed;
 
         if (changed)
         {
@@ -1162,8 +1164,74 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
     };
 
     db.UserProfiles.Add(user);
+    await LinkPendingSharesToUserAsync(db, user);
     await db.SaveChangesAsync();
     return user;
+}
+
+static string? GetEmailFromClaims(HttpContext http)
+{
+    var principal = http.User;
+    var directEmail = principal.FindFirst(ClaimTypes.Email)?.Value ?? principal.FindFirst("email")?.Value;
+    if (LooksLikeEmail(directEmail))
+    {
+        return directEmail!.Trim();
+    }
+
+    var namespacedEmail = principal.Claims
+        .FirstOrDefault(claim =>
+            claim.Type.EndsWith("/email", StringComparison.OrdinalIgnoreCase) ||
+            claim.Type.EndsWith(":email", StringComparison.OrdinalIgnoreCase))
+        ?.Value
+        ?.Trim();
+
+    if (LooksLikeEmail(namespacedEmail))
+    {
+        return namespacedEmail;
+    }
+
+    var usernameEmail =
+        principal.FindFirst("preferred_username")?.Value ??
+        principal.FindFirst("upn")?.Value ??
+        principal.FindFirst("unique_name")?.Value ??
+        principal.FindFirst("nickname")?.Value ??
+        principal.FindFirst("name")?.Value;
+
+    if (LooksLikeEmail(usernameEmail))
+    {
+        return usernameEmail!.Trim();
+    }
+
+    var environment = http.RequestServices.GetRequiredService<IHostEnvironment>();
+    if (environment.IsDevelopment() &&
+        http.Request.Headers.TryGetValue("X-Weather-App-Profile-Email", out var profileEmail) &&
+        LooksLikeEmail(profileEmail.FirstOrDefault()))
+    {
+        return profileEmail.FirstOrDefault()!.Trim();
+    }
+
+    return null;
+}
+
+static async Task<bool> LinkPendingSharesToUserAsync(WeatherDbContext db, UserProfile user)
+{
+    if (string.IsNullOrWhiteSpace(user.NormalizedEmail))
+    {
+        return false;
+    }
+
+    var pendingShares = await db.WeatherStationShares
+        .Where(share =>
+            share.SharedWithUserProfileId == null &&
+            share.NormalizedSharedWithEmail == user.NormalizedEmail)
+        .ToListAsync();
+
+    foreach (var share in pendingShares)
+    {
+        share.SharedWithUserProfileId = user.Id;
+    }
+
+    return pendingShares.Count > 0;
 }
 
 static WeatherStationMeasurementResponse ToMeasurementResponse(WeatherStationMeasurement measurement) =>
@@ -1258,7 +1326,7 @@ static string? ValidateMeasurementRequest(CreateWeatherStationMeasurementRequest
 
     if (request.WindDirectionDegrees is < 0 or > 360)
     {
-        return "Wind direction must be between 0 and 360 degrees.";
+        return "Windrichtung muss N, NO, O, SO, S, SW, W oder NW sein.";
     }
 
     if (request.RainfallMm is < 0)
@@ -1459,3 +1527,15 @@ static string NormalizeEmail(string value) => value.Trim().ToUpperInvariant();
 
 static string? NormalizeEmailOrNull(string? value) =>
     string.IsNullOrWhiteSpace(value) ? null : NormalizeEmail(value);
+
+static bool LooksLikeEmail(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return false;
+    }
+
+    var trimmed = value.Trim();
+    var atIndex = trimmed.IndexOf('@');
+    return atIndex > 0 && atIndex < trimmed.Length - 1;
+}

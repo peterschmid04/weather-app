@@ -40,7 +40,7 @@ export default function WeatherApp() {
   const [selectedStationId, setSelectedStationId] = useState("");
   const [themeName, setThemeName] = useState("graphite");
   const activeWeatherRequestRef = useRef(0);
-  const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently, user } = useAuth0();
 
   const timezoneOffsetFormatted = timezoneOffset >= 0 ? `+${timezoneOffset}` : timezoneOffset;
 
@@ -77,6 +77,7 @@ export default function WeatherApp() {
           ...(options.headers || {}),
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
+          ...(user?.email ? { "X-Weather-App-Profile-Email": user.email } : {}),
           ...(options.body ? { "Content-Type": "application/json" } : {}),
         },
       });
@@ -95,7 +96,7 @@ export default function WeatherApp() {
 
       return body;
     },
-    [getAccessTokenSilently]
+    [getAccessTokenSilently, user?.email]
   );
 
   const fetchWeatherData = useCallback(
@@ -159,21 +160,25 @@ export default function WeatherApp() {
         );
 
         const nextHighlights = [
-          ...(typeof uvData?.uvIndex === "number" ? [{ title: "UV-Index", value: uvData.uvIndex, unit: "" }] : []),
+          {
+            title: "UV-Index",
+            value: typeof uvData?.uvIndex === "number" ? uvData.uvIndex : null,
+            unit: "",
+            status: typeof uvData?.uvIndex === "number" ? "" : "Nicht verfügbar",
+          },
           { title: "Wind", value: data.windSpeed, unit: "km/h", status: getStatusWind(data.windSpeed) },
           { title: "Sonnenaufgang & Sonnenuntergang", up: `${data.sunrise}`, down: `${data.sunset}` },
           { title: "Luftfeuchtigkeit", value: data.humidity, unit: "%", status: getStatusHumidity(data.humidity) },
           { title: "Sichtweite", value: data.visibilityKm, unit: "km", status: getStatusVisibility(data.visibilityKm) },
-        ];
-
-        if (typeof airQualityData?.aqi === "number") {
-          nextHighlights.push({
+          {
             title: "Luftqualität",
-            value: airQualityData.aqi,
+            value: typeof airQualityData?.aqi === "number" ? airQualityData.aqi : null,
             unit: "",
-            status: getStatusAirquality(airQualityData.aqi),
-          });
-        }
+            status: typeof airQualityData?.aqi === "number"
+              ? getStatusAirquality(airQualityData.aqi)
+              : "Nicht verfügbar",
+          },
+        ];
 
         setHighlights(nextHighlights);
       } catch (err) {

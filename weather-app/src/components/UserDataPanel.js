@@ -62,7 +62,6 @@ export default function UserDataPanel({
 }) {
   const [stations, setStations] = useState([]);
   const [shares, setShares] = useState({ outgoing: [], incoming: [] });
-  const [accessOverview, setAccessOverview] = useState(null);
   const [shareForm, setShareForm] = useState(emptyShareForm);
   const [favorites, setFavorites] = useState([]);
   const [favoriteForm, setFavoriteForm] = useState(emptyFavorite);
@@ -101,15 +100,10 @@ export default function UserDataPanel({
     setFavorites(Array.isArray(data) ? data : []);
   }, [authFetchJson]);
 
-  const loadAccessOverview = useCallback(async () => {
-    const data = await authFetchJson(buildApiUrl("/access"));
-    setAccessOverview(data || null);
-  }, [authFetchJson]);
-
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([loadStations(), loadFavorites(), loadShares(), loadAccessOverview()]).then(() => {
+    Promise.allSettled([loadStations(), loadFavorites(), loadShares()]).then(() => {
       if (cancelled) {
         return;
       }
@@ -120,7 +114,7 @@ export default function UserDataPanel({
     return () => {
       cancelled = true;
     };
-  }, [loadStations, loadFavorites, loadShares, loadAccessOverview, stationsRefreshKey]);
+  }, [loadStations, loadFavorites, loadShares, stationsRefreshKey]);
 
   const saveCurrentFavorite = async () => {
     if (!currentWeather?.city) {
@@ -274,25 +268,30 @@ export default function UserDataPanel({
 
   const acceptShare = async (shareId) => {
     try {
-      await authFetchJson(buildApiUrl(`/station-shares/${shareId}/accept`), { method: "POST" });
+      const acceptedShare = await authFetchJson(buildApiUrl(`/station-shares/${shareId}/accept`), { method: "POST" });
       await Promise.all([loadShares(), loadStations()]);
+      if (acceptedShare?.weatherStationId) {
+        onSelectedStationChange?.(acceptedShare.weatherStationId);
+      }
       setMessage("Freigabe angenommen.");
     } catch (error) {
       setMessage(getFriendlyErrorMessage(error, error.message || "Freigabe konnte nicht angenommen werden."));
     }
   };
 
-  const deleteShare = async (shareId) => {
+  const deleteShare = async (shareId, successMessage = "Freigabe entfernt.") => {
     try {
       await authFetchJson(buildApiUrl(`/station-shares/${shareId}`), { method: "DELETE" });
       await Promise.all([loadShares(), loadStations()]);
-      setMessage("Freigabe entfernt.");
+      setMessage(successMessage);
     } catch (error) {
       setMessage(getFriendlyErrorMessage(error, error.message || "Freigabe konnte nicht entfernt werden."));
     }
   };
 
   const ownStations = stations.filter((station) => station.isOwner);
+  const pendingIncomingShares = shares.incoming.filter((share) => share.status !== "accepted");
+  const acceptedIncomingShares = shares.incoming.filter((share) => share.status === "accepted");
 
   return (
     <section className="user-data">
@@ -352,21 +351,38 @@ export default function UserDataPanel({
 
           <div className="share-sections">
             <div className="share-section">
-              <h4>Eingehende Freigaben</h4>
-              {shares.incoming.length === 0 && <p className="empty">Keine Einladung erhalten.</p>}
-              {shares.incoming.map((share) => (
+              <h4>Eingehende Einladungen</h4>
+              {pendingIncomingShares.length === 0 && <p className="empty">Keine offene Einladung erhalten.</p>}
+              {pendingIncomingShares.map((share) => (
                 <article key={share.id} className="share-item">
                   <strong>{share.stationName}</strong>
                   <small>Von {share.ownerName}</small>
-                  <small>Status: {share.status === "accepted" ? "angenommen" : "offen"}</small>
                   <div className="row-actions">
-                    {share.status !== "accepted" && (
-                      <button type="button" className="quiet" onClick={() => acceptShare(share.id)}>
-                        Annehmen
-                      </button>
-                    )}
-                    <button type="button" className="quiet" onClick={() => deleteShare(share.id)}>
-                      Löschen
+                    <button type="button" className="quiet" onClick={() => acceptShare(share.id)}>
+                      Annehmen
+                    </button>
+                    <button type="button" className="quiet" onClick={() => deleteShare(share.id, "Einladung abgelehnt.")}>
+                      Ablehnen
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="share-section">
+              <h4>Angenommene Freigaben</h4>
+              {acceptedIncomingShares.length === 0 && <p className="empty">Noch keine Freigabe angenommen.</p>}
+              {acceptedIncomingShares.map((share) => (
+                <article key={share.id} className="share-item">
+                  <strong>{share.stationName}</strong>
+                  <small>Von {share.ownerName}</small>
+                  <small>{share.permission === "write_measurements" ? "Messwerte eintragen erlaubt" : "Nur ansehen"}</small>
+                  <div className="row-actions">
+                    <button type="button" className="quiet" onClick={() => onSelectedStationChange?.(share.weatherStationId)}>
+                      Verwalten
+                    </button>
+                    <button type="button" className="quiet" onClick={() => deleteShare(share.id, "Freigabe entfernt.")}>
+                      Entfernen
                     </button>
                   </div>
                 </article>
@@ -381,7 +397,7 @@ export default function UserDataPanel({
                   <strong>{share.stationName}</strong>
                   <small>{share.sharedWithEmail}</small>
                   <small>Status: {share.status === "accepted" ? "angenommen" : "offen"}</small>
-                  <button type="button" className="quiet" onClick={() => deleteShare(share.id)}>
+                  <button type="button" className="quiet" onClick={() => deleteShare(share.id, "Freigabe gelöscht.")}>
                     Freigabe löschen
                   </button>
                 </article>
@@ -430,31 +446,6 @@ export default function UserDataPanel({
                 </div>
               </article>
             ))}
-          </div>
-        </div>
-
-        <div className="saved-panel access-panel">
-          <div className="panel-title">
-            <h3>Region und Rollen</h3>
-          </div>
-
-          <div className="access-grid">
-            <article>
-              <small>Aktiver Zugriff</small>
-              <strong>{accessOverview?.regionScope || "Deutschland"}</strong>
-            </article>
-            <article>
-              <small>Erlaubte Regionen</small>
-              <strong>{accessOverview?.allowedRegions?.length ? accessOverview.allowedRegions.join(", ") : "Deutschland"}</strong>
-            </article>
-            <article>
-              <small>Auth0 Permissions</small>
-              <strong>{accessOverview?.permissions?.length ? accessOverview.permissions.join(", ") : "Standardzugriff Deutschland"}</strong>
-            </article>
-            <article>
-              <small>Auth0 Rollen</small>
-              <strong>{accessOverview?.roles?.length ? accessOverview.roles.join(", ") : "Keine Rolle im Token"}</strong>
-            </article>
           </div>
         </div>
       </div>

@@ -21,13 +21,16 @@ export default function Highlights({ highlights }) {
                                 <p><img src={iconSunrise} alt="Sonnenaufgang" /> {item.up}</p>
                                 <p><img src={iconSunset} alt="Sonnenuntergang" /> {item.down}</p>
                             </div>
-                        ) : item.title === "UV-Index" ? (
+                        ) : item.title === "UV-Index" && typeof item.value === "number" ? (
                             // Render the UVIndex component for UV Index highlight
                             <UVIndex value={item.value} />
                         ) : (
                             // Render generic highlight information
                             <div>
-                                <p><strong>{item.value}</strong> {item.unit}</p>
+                                <p>
+                                    <strong>{typeof item.value === "number" ? item.value : "—"}</strong>
+                                    {item.unit ? ` ${item.unit}` : ""}
+                                </p>
                                 <p>{item.status}</p>
                             </div>
                         )}

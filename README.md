@@ -434,7 +434,7 @@ ngrok leitet dann auf den Frontend-Service im Docker-Netzwerk weiter:
 https://your-ngrok-url.ngrok-free.app -> frontend:3000
 ```
 
-API-Aufrufe laufen im Browser relativ zur aktuellen Seite, also zum Beispiel `/weather` statt `http://localhost:5122/weather`. Der React-Dev-Server leitet diese Requests im Docker-Netzwerk an `backend:5122` weiter. Dadurch funktioniert die Suche auch, wenn jemand die App extern über die ngrok-URL öffnet. `REACT_APP_API_BASE_URL` deshalb für Docker/ngrok leer lassen.
+API-Aufrufe laufen im Browser relativ zur aktuellen Seite, also zum Beispiel `/weather`. Der React-Dev-Server leitet diese Requests im Docker-Netzwerk an `backend:5122` weiter. Dadurch funktioniert die Suche auch, wenn jemand die App extern über die ngrok-URL öffnet. Dieses Projekt ist auf den Start über Docker Compose ausgelegt.
 
 Der Frontend-Container setzt für den lokalen React-Dev-Server `DANGEROUSLY_DISABLE_HOST_CHECK=true`, weil ngrok mit einem öffentlichen Hostnamen auf die App zugreift. Ohne diese Dev-Option antwortet Create React App mit `Invalid Host header`.
 
@@ -584,7 +584,7 @@ Offene Erweiterungsideen:
 
 ## Rollenbasierte Region-Ansicht
 
-Die Region-Freigabe über Auth0 Permissions ist umgesetzt. Das Backend prüft die Berechtigung serverseitig in `RegionAuthorization`, und das Frontend zeigt im Bereich `Region und Rollen`, welche Permissions und Rollen der aktuelle Auth0-Token enthält.
+Die Region-Freigabe über Auth0 Permissions ist umgesetzt. Das Backend prüft die Berechtigung serverseitig in `RegionAuthorization`. Der technische Kontroll-Endpunkt `/access` kann die aktiven Permissions und Rollen des aktuellen Auth0-Tokens zurückgeben, wird in der normalen Oberfläche aber nicht als eigene Rollenbox angezeigt.
 
 Umgesetzt:
 

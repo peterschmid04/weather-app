@@ -22,6 +22,35 @@ const emptyMeasurement = {
   notes: "",
 };
 
+const windDirectionOptions = [
+  { label: "N", degrees: 0 },
+  { label: "NO", degrees: 45 },
+  { label: "O", degrees: 90 },
+  { label: "SO", degrees: 135 },
+  { label: "S", degrees: 180 },
+  { label: "SW", degrees: 225 },
+  { label: "W", degrees: 270 },
+  { label: "NW", degrees: 315 },
+];
+
+const formatValue = (value, unit = "") => {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  return `${value}${unit ? ` ${unit}` : ""}`;
+};
+
+const formatWindDirection = (degrees) => {
+  if (degrees === null || degrees === undefined || Number.isNaN(Number(degrees))) {
+    return "-";
+  }
+
+  const normalized = ((Number(degrees) % 360) + 360) % 360;
+  const index = Math.round(normalized / 45) % windDirectionOptions.length;
+  return windDirectionOptions[index].label;
+};
+
 export default function Stations({ authFetchJson, selectedStationId, onSelectedStationChange, onStationsChanged }) {
   const [stations, setStations] = useState([]);
   const [editingStationId, setEditingStationId] = useState("");
@@ -246,10 +275,17 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
             </p>
           )}
           <input value={measurementForm.temperatureC} onChange={(event) => updateMeasurementForm("temperatureC", event.target.value)} placeholder="Temperatur °C" type="number" step="0.1" />
-          <input value={measurementForm.humidityPercent} onChange={(event) => updateMeasurementForm("humidityPercent", event.target.value)} placeholder="Luftfeuchte %" type="number" step="0.1" />
+          <input value={measurementForm.humidityPercent} onChange={(event) => updateMeasurementForm("humidityPercent", event.target.value)} placeholder="Luftfeuchte %" type="number" min="0" max="100" step="0.1" />
           <input value={measurementForm.pressureHpa} onChange={(event) => updateMeasurementForm("pressureHpa", event.target.value)} placeholder="Luftdruck hPa" type="number" step="0.1" />
           <input value={measurementForm.windSpeedKmh} onChange={(event) => updateMeasurementForm("windSpeedKmh", event.target.value)} placeholder="Wind km/h" type="number" step="0.1" />
-          <input value={measurementForm.windDirectionDegrees} onChange={(event) => updateMeasurementForm("windDirectionDegrees", event.target.value)} placeholder="Windrichtung Grad" type="number" />
+          <select value={measurementForm.windDirectionDegrees} onChange={(event) => updateMeasurementForm("windDirectionDegrees", event.target.value)}>
+            <option value="">Windrichtung</option>
+            {windDirectionOptions.map((direction) => (
+              <option key={direction.label} value={direction.degrees}>
+                {direction.label}
+              </option>
+            ))}
+          </select>
           <input value={measurementForm.rainfallMm} onChange={(event) => updateMeasurementForm("rainfallMm", event.target.value)} placeholder="Regen mm" type="number" step="0.1" />
           <input value={measurementForm.notes} onChange={(event) => updateMeasurementForm("notes", event.target.value)} placeholder="Notiz optional" />
           <button type="submit">Messwert speichern</button>
@@ -260,7 +296,32 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
           {measurements.slice(0, 5).map((measurement) => (
             <article key={measurement.id}>
               <strong>{new Date(measurement.measuredAtUtc).toLocaleString("de-DE")}</strong>
-              <span>{measurement.temperatureC ?? "-"} °C | {measurement.humidityPercent ?? "-"} % | {measurement.pressureHpa ?? "-"} hPa</span>
+              <dl>
+                <div>
+                  <dt>Temperatur</dt>
+                  <dd>{formatValue(measurement.temperatureC, "°C")}</dd>
+                </div>
+                <div>
+                  <dt>Luftfeuchte</dt>
+                  <dd>{formatValue(measurement.humidityPercent, "%")}</dd>
+                </div>
+                <div>
+                  <dt>Luftdruck</dt>
+                  <dd>{formatValue(measurement.pressureHpa, "hPa")}</dd>
+                </div>
+                <div>
+                  <dt>Wind</dt>
+                  <dd>{formatValue(measurement.windSpeedKmh, "km/h")}</dd>
+                </div>
+                <div>
+                  <dt>Richtung</dt>
+                  <dd>{formatWindDirection(measurement.windDirectionDegrees)}</dd>
+                </div>
+                <div>
+                  <dt>Regen</dt>
+                  <dd>{formatValue(measurement.rainfallMm, "mm")}</dd>
+                </div>
+              </dl>
               {measurement.notes && <small>{measurement.notes}</small>}
             </article>
           ))}
