@@ -18,7 +18,7 @@ Hinweis: Diese Datei ist nur eine Sammelliste. Die Punkte aus externen KI-Review
 - [ ] Pruefen: frischer Clone plus lokale `.env` plus `docker compose up -d` reicht wirklich.
 - [x] Pruefen, dass nach neuen Features keine Secrets in Git landen.
 - [x] Pruefen, ob `docker compose up -d` mit gefuelltem ngrok-Setup ngrok startet.
-- [ ] Pruefen, ob `docker compose up -d` mit leerem ngrok-Setup ohne ngrok startet.
+- [x] Pruefen, ob Compose mit leerem ngrok-Setup ohne ngrok geplant wird.
 - [ ] Responsive Darstellung mit Stationen, Favoriten, Verlauf, Freigaben und Themes visuell pruefen.
 - [ ] Fachliche Funktionen komplett durchtesten: Wetterdashboard, Stadtsuche, Forecast, UV-Index, Luftqualitaet, Login, Verlauf, Favoriten, Wetterstationen, Themes.
 - [ ] Fehlerfaelle 400, 401, 403, 404, 409, 429 und 500 im Frontend und Backend testen.
