@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Audit/debug row for weather API requests.
+/// </summary>
 public class WeatherRequestLog
 {
     public Guid Id { get; set; }

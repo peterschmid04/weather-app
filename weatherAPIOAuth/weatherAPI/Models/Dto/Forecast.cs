@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Dto;
 
+/// <summary>
+/// One forecast day card returned by /forecast.
+/// </summary>
 public class Forecast
 {
     public required string Day { get; set; } 

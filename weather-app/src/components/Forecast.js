@@ -2,6 +2,8 @@ import "./Forecast.css";
 import React from "react";
 import { translateWeatherDescription, translateWeekday } from "../utils/localizationUtils";
 
+// Forecast renders backend-prepared day cards and keeps temperature conversion
+// local to the visual component.
 const convertTemperature = (temp, isCelsius) => isCelsius ? temp : Number((temp * 9 / 5 + 32).toFixed(1));
 
 const formatTemperature = (temp, isCelsius) => {

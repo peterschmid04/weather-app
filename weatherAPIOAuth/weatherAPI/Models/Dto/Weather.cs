@@ -1,4 +1,8 @@
 namespace weatherAPI.Models.Dto;
+
+/// <summary>
+/// Current-weather response returned by /weather to the React dashboard.
+/// </summary>
 public class Weather
 {
     public required double Lat { get; set; }

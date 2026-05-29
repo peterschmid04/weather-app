@@ -1,5 +1,7 @@
 namespace weatherAPI.Models.Dto;
 
+// Request/response DTOs for custom weather stations, measurements and shares.
+// The frontend receives these compact shapes instead of database entities.
 public record CreateWeatherStationRequest(
     string Name,
     string? CityName,

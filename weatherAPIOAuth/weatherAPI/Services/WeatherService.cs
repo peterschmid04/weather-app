@@ -3,6 +3,10 @@ using weatherAPI.Models.Dto;
 
 namespace weatherAPI.Services
 {
+    /// <summary>
+    /// Maps raw OpenWeatherMap current-weather data into the compact Weather DTO
+    /// consumed by the frontend dashboard.
+    /// </summary>
     public class WeatherService : IWeatherService
     {
         private readonly IOpenWeatherApiService _weatherApiClient;
@@ -12,6 +16,10 @@ namespace weatherAPI.Services
             _weatherApiClient = weatherApiClient;
         }
         
+        /// <summary>
+        /// Returns current weather for a city or null when OpenWeatherMap could
+        /// not resolve the query.
+        /// </summary>
         public async Task<Weather?> GetWeather(string city)
         {
             var openWeather = await _weatherApiClient.GetWeather(city);

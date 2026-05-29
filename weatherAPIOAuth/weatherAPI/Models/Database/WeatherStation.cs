@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Custom weather station owned by a user and optionally shared with others.
+/// </summary>
 public class WeatherStation
 {
     public Guid Id { get; set; }

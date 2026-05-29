@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Normalized city/place table reused by history, favorites, logs and stations.
+/// </summary>
 public class City
 {
     public Guid Id { get; set; }

@@ -3,6 +3,11 @@ using weatherAPI.Models.Database;
 
 namespace weatherAPI.Data;
 
+/// <summary>
+/// EF-Core database context for all persistent Weather App data.
+/// Auth0 remains the identity provider; this context stores only app data such
+/// as profiles, cities, favorites, history, stations, shares and theme choices.
+/// </summary>
 public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbContext(options)
 {
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -25,6 +30,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // UserProfiles mirror Auth0 users by subject and optional email so app
+        // data can be separated per logged-in user without storing passwords.
         modelBuilder.Entity<UserProfile>(entity =>
         {
             entity.HasKey(user => user.Id);
@@ -37,6 +44,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(user => user.NormalizedEmail);
         });
 
+        // Cities are centralized and referenced by favorites, history, logs and
+        // weather stations to avoid duplicated city records.
         modelBuilder.Entity<City>(entity =>
         {
             entity.HasKey(city => city.Id);
@@ -46,6 +55,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(city => new { city.NormalizedName, city.CountryCode }).IsUnique();
         });
 
+        // SearchHistory stores recent searches per user and points to Cities.
         modelBuilder.Entity<SearchHistory>(entity =>
         {
             entity.HasKey(history => history.Id);
@@ -62,6 +72,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(history => new { history.UserProfileId, history.SearchedAtUtc });
         });
 
+        // FavoriteCities stores each user's saved cities; IsDefault marks the
+        // single city that should load after login.
         modelBuilder.Entity<FavoriteCity>(entity =>
         {
             entity.HasKey(favorite => favorite.Id);
@@ -79,6 +91,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(favorite => new { favorite.UserProfileId, favorite.IsDefault });
         });
 
+        // WeatherStations are user-owned custom places/stations with optional
+        // coordinates and a normalized City relation.
         modelBuilder.Entity<WeatherStation>(entity =>
         {
             entity.HasKey(station => station.Id);
@@ -96,6 +110,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(station => new { station.UserProfileId, station.Name }).IsUnique();
         });
 
+        // Measurements are time series entries attached to one station.
         modelBuilder.Entity<WeatherStationMeasurement>(entity =>
         {
             entity.HasKey(measurement => measurement.Id);
@@ -108,6 +123,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(measurement => new { measurement.WeatherStationId, measurement.MeasuredAtUtc });
         });
 
+        // Shares model invitations and accepted access from one owner to
+        // another Auth0 user identified by email/profile.
         modelBuilder.Entity<WeatherStationShare>(entity =>
         {
             entity.HasKey(share => share.Id);
@@ -134,6 +151,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(share => share.NormalizedSharedWithEmail);
         });
 
+        // Request logs record weather lookup attempts for debugging/audit.
         modelBuilder.Entity<WeatherRequestLog>(entity =>
         {
             entity.HasKey(log => log.Id);
@@ -153,6 +171,7 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasIndex(log => log.RequestedAtUtc);
         });
 
+        // One theme preference per user controls the saved UI color theme.
         modelBuilder.Entity<UserThemePreference>(entity =>
         {
             entity.HasKey(preference => preference.Id);

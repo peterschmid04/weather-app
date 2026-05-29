@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace weatherAPI.Models.External;
 
+/// <summary>
+/// Temperature block from one forecast entry.
+/// </summary>
 public class ForecastMain
 {
     [JsonPropertyName("temp")]

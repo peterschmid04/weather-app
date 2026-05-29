@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# macOS/Linux setup script.
+# It mirrors the PowerShell script: validate existing .env, otherwise create it
+# atomically from required Auth0/OpenWeatherMap values and generated passwords.
 cd "$(dirname "$0")"
 
 VALIDATE_ONLY=false

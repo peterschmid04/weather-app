@@ -8,6 +8,10 @@ using weatherAPI.Services.Interfaces;
 
 namespace weatherAPI.Test;
 
+/// <summary>
+/// Unit tests for the thin application services around the OpenWeatherMap API
+/// abstraction. The external API is mocked so tests stay deterministic.
+/// </summary>
 [TestClass]
 public class WeatherApiServicesTests
 {
@@ -22,6 +26,7 @@ public class WeatherApiServicesTests
     [ClassInitialize]
     public static void ClassInit(TestContext context)
     {
+        // The shared mock returns stable values for every service under test.
         _apiMock = new Mock<IOpenWeatherApiService>();
 
         _apiMock
@@ -48,6 +53,8 @@ public class WeatherApiServicesTests
     [TestInitialize]
     public void TestInit()
     {
+        // Each test verifies only its own service call, so previous invocations
+        // are cleared before the next method runs.
         _apiMock.Invocations.Clear();
     }
 
@@ -125,6 +132,8 @@ public class WeatherApiServicesTests
     private static ForecastApiResponse GetForecastApiResponseTestData(double expectedTempMin, double expectedTempMax,
         string expectedDescription)
     {
+        // Two entries are enough to verify that the service skips the current
+        // day and maps the next forecast day into a frontend DTO.
         var expectedForecast = new ForecastApiResponse
         {
             City = new ForecastCity { Timezone = 0 },
@@ -163,6 +172,8 @@ public class WeatherApiServicesTests
 
     private static OpenWeatherResponse GetOpenWeatherResponseTestData()
     {
+        // Minimal current-weather payload that contains every field used by the
+        // WeatherService mapper.
         var expectedWeather = new OpenWeatherResponse
         {
             Coord = new Coord { Lat = 51.5085, Lon = -0.1257 },

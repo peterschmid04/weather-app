@@ -3,6 +3,9 @@ using weatherAPI.Services.Interfaces;
 
 namespace weatherAPI.Services
 {
+    /// <summary>
+    /// Maps the OpenWeatherMap air-quality value into the DTO returned by the API.
+    /// </summary>
     public class AirQualityService: IAirQualityService
     {
         private readonly IOpenWeatherApiService _airQualityApiClient;
@@ -12,6 +15,9 @@ namespace weatherAPI.Services
             _airQualityApiClient = airQualityApiClient;
         }
         
+        /// <summary>
+        /// Returns AQI for coordinates or null when the external API call fails.
+        /// </summary>
         public async Task<AirQuality?> GetAirQuality(double lat, double lon)
         {
             var aqiValue = await _airQualityApiClient.GetAirQuality(lat, lon);

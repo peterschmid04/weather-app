@@ -1,5 +1,7 @@
 import "./LoginOptions.css";
 
+// Connection names come from .env through Docker Compose. Empty connection
+// values disable the corresponding provider button instead of breaking login.
 const authConnections = [
   { label: "Google", envKey: "REACT_APP_AUTH0_CONNECTION_GOOGLE" },
   { label: "Apple", envKey: "REACT_APP_AUTH0_CONNECTION_APPLE" },
@@ -8,6 +10,8 @@ const authConnections = [
 ];
 
 export default function LoginOptions({ loginWithRedirect }) {
+  // Auth0 SPA login uses Authorization Code Flow with PKCE. The frontend sends
+  // only public SPA values; secrets remain in Auth0/provider dashboards.
   const authParams = {
     audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     scope: process.env.REACT_APP_AUTH0_SCOPE,

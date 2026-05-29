@@ -14,9 +14,14 @@ using weatherAPI.Models.Dto;
 using weatherAPI.Security;
 using weatherAPI.Logging;
 
+// Central ASP.NET Core Minimal API startup file.
+// It wires configuration, Auth0 JWT validation, EF Core/PostgreSQL,
+// rate limiting, Swagger and the REST endpoints used by the React frontend.
 var builder = WebApplication.CreateBuilder(args);   
 static bool IsTrue(string? value) => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
+// Detailed file logging is opt-in via LOGS=true or ENABLE_DETAILED_LOGS=true.
+// With the default false values no logs directory is created.
 var detailedLogsEnabled = IsTrue(builder.Configuration["LOGS"]) || IsTrue(builder.Configuration["ENABLE_DETAILED_LOGS"]);
 if (detailedLogsEnabled)
 {
@@ -31,7 +36,9 @@ if (detailedLogsEnabled)
     builder.Logging.AddProvider(new DetailedFileLoggerProvider(logFile));
 }
 
-// Add services
+// Required runtime configuration. The backend fails fast when the database
+// connection or OpenWeatherMap API key is missing instead of failing later
+// during the first user request.
 var databaseConnectionString = builder.Configuration.GetConnectionString("WeatherDatabase")
     ?? throw new InvalidOperationException("Connection string 'WeatherDatabase' is missing. Configure ConnectionStrings__WeatherDatabase.");
 
@@ -42,6 +49,7 @@ if (string.IsNullOrWhiteSpace(openWeatherApiKey) ||
     throw new InvalidOperationException("OPENWEATHERMAP_API_KEY is missing. Add a real OpenWeatherMap API key to the local .env file before starting the backend.");
 }
 
+// EF Core uses Npgsql as the ORM provider for PostgreSQL.
 builder.Services.AddDbContext<WeatherDbContext>(options =>
     options.UseNpgsql(databaseConnectionString, npgsqlOptions =>
         npgsqlOptions.EnableRetryOnFailure()));
@@ -54,6 +62,8 @@ builder.Services.AddScoped<IOpenWeatherApiService, OpenWeatherApiService>();
 builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAuthorization(options => options.FallbackPolicy = options.DefaultPolicy);
+// Swagger documents the local API and supports Auth0 Authorization Code Flow
+// with PKCE so protected endpoints can be tried from the browser.
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo {Title = "Weather API", Version = "v1"});
@@ -89,6 +99,8 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCors(options =>
 {
+    // Local frontend origins for development. Authentication is still enforced
+    // by the JWT bearer middleware on the protected endpoints.
     options.AddPolicy("AllowFrontend", p => p
         .WithOrigins("http://localhost:3000", "http://localhost:5122")
         .AllowAnyMethod()
@@ -97,6 +109,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddRateLimiter(options =>
 {
+    // Global limiter partitioned by Auth0 subject when logged in, otherwise by
+    // remote IP. Short queues reduce noisy 429 responses during fast UI refreshes.
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
         PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -121,7 +135,8 @@ builder.Services.AddRateLimiter(options =>
                 })));
 });
 
-// Auth0 JWT
+// Auth0 JWT: the React SPA obtains an access token from Auth0 and sends it as
+// Authorization: Bearer <token>. The backend validates issuer, audience and lifetime.
 var domain   = builder.Configuration["Auth0:Domain"];
 var audience = builder.Configuration["Auth0:Audience"];
 builder.Services
@@ -161,6 +176,8 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
+// Demo-only response header. It has no business meaning and does not affect
+// any API contract or database write.
 var rnd = new Random();
 string[] funTxt =
 [
@@ -185,6 +202,8 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// GET /weather validates the city, calls OpenWeatherMap through the service
+// layer, checks Auth0 region permissions, then stores search history and logs.
 app.MapGet("/weather", async (
     HttpContext http,
     string? city,
@@ -246,6 +265,8 @@ app.MapGet("/weather", async (
     return Results.Ok(resultWeather);
 });
 
+// Coordinate-based weather details used by the dashboard after /weather has
+// resolved the selected city to latitude and longitude.
 app.MapGet("/uv", async (double lat, double lon, [FromServices] IUvService uvService) =>
 {
     var resultUv = await uvService.GetUvIndex(lat, lon);
@@ -264,6 +285,8 @@ app.MapGet("/forecast", async (double lat, double lon, [FromServices] IForecastS
     return resultForecast != null ? Results.Json(resultForecast) : Results.Problem("Failed to retrieve forecast data.");
 });
 
+// Profile/access endpoints expose the current Auth0 identity and the region
+// permissions that the backend derives from token claims.
 app.MapGet("/my-profile", async (HttpContext http, [FromServices] WeatherDbContext db) =>
 {
     var user = await GetOrCreateCurrentUserAsync(http, db);
@@ -294,6 +317,8 @@ app.MapGet("/access", async (HttpContext http, [FromServices] WeatherDbContext d
         GetAuth0Roles(http.User)));
 });
 
+// Search history is scoped to the current Auth0 user. The backend trims the
+// list before returning it so the UI and database stay at the intended limit.
 var history = app.MapGroup("/history");
 
 history.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -387,6 +412,8 @@ history.MapDelete("/{historyId:guid}", async (
     return Results.NoContent();
 });
 
+// Favorites are persisted per user and normalized through the shared Cities
+// table. The default flag is used by the frontend as the startup city.
 var favorites = app.MapGroup("/favorites");
 
 favorites.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -600,6 +627,8 @@ favorites.MapDelete("/{favoriteId:guid}", async (
     return Results.NoContent();
 });
 
+// User theme preferences keep visual settings server-side so the selected
+// theme follows the Auth0 user across browsers.
 var theme = app.MapGroup("/theme");
 
 theme.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -659,6 +688,8 @@ theme.MapPut("/", async (
     return Results.Ok(new ThemePreferenceResponse(themeName));
 });
 
+// Weather stations can be owned by the current user or visible through an
+// accepted share. Measurement write access is checked separately.
 var stations = app.MapGroup("/stations");
 
 stations.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -987,6 +1018,8 @@ stations.MapPost("/{stationId:guid}/measurements", async (
     return Results.Created($"/stations/{stationId}/measurements/{measurement.Id}", ToMeasurementResponse(measurement));
 });
 
+// Station shares connect a station owner, an invited email address and an
+// optional linked Auth0 user once the invitation is accepted.
 var stationShares = app.MapGroup("/station-shares");
 
 stationShares.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
@@ -1176,13 +1209,15 @@ stationShares.MapDelete("/{shareId:guid}", async (
         return Results.NotFound(new { message = "Share not found." });
     }
 
-    db.WeatherStationShares.Remove(share);
+db.WeatherStationShares.Remove(share);
     await db.SaveChangesAsync();
     return Results.NoContent();
 });
 
 app.Run();  
 
+// Creates or updates the local user profile that mirrors the Auth0 subject.
+// Passwords remain in Auth0; the database stores only app-specific metadata.
 static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, WeatherDbContext db)
 {
     var subject = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? http.User.FindFirst("sub")?.Value;
@@ -1237,6 +1272,8 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
     return user;
 }
 
+// Auth0 providers differ slightly in where they expose an email claim. This
+// helper checks common claim names and a development-only header used by the UI.
 static string? GetEmailFromClaims(HttpContext http)
 {
     var principal = http.User;
@@ -1281,6 +1318,7 @@ static string? GetEmailFromClaims(HttpContext http)
     return null;
 }
 
+// Pending shares are linked when the invited email signs in for the first time.
 static async Task<bool> LinkPendingSharesToUserAsync(WeatherDbContext db, UserProfile user)
 {
     if (string.IsNullOrWhiteSpace(user.NormalizedEmail))
@@ -1302,6 +1340,7 @@ static async Task<bool> LinkPendingSharesToUserAsync(WeatherDbContext db, UserPr
     return pendingShares.Count > 0;
 }
 
+// Maps the EF entity to the DTO returned by station measurement endpoints.
 static WeatherStationMeasurementResponse ToMeasurementResponse(WeatherStationMeasurement measurement) =>
     new(
         measurement.Id,
@@ -1314,6 +1353,8 @@ static WeatherStationMeasurementResponse ToMeasurementResponse(WeatherStationMea
         measurement.RainfallMm,
         measurement.Notes);
 
+// Validation helpers keep request checks consistent across manual history,
+// favorites, station CRUD, measurements and station sharing.
 static string? ValidateCityRequest(CityRequest request)
 {
     if (string.IsNullOrWhiteSpace(request.CityName))
@@ -1436,6 +1477,7 @@ static string? ValidateShareRequest(CreateWeatherStationShareRequest request)
     return null;
 }
 
+// Normalizes share permission aliases into the two values stored in the DB.
 static string? NormalizeSharePermission(string? value) =>
     value?.Trim().ToLowerInvariant() switch
     {
@@ -1446,6 +1488,7 @@ static string? NormalizeSharePermission(string? value) =>
         _ => null
     };
 
+// Read/write guards centralize ownership and accepted-share checks.
 static async Task<bool> CanReadStationAsync(WeatherDbContext db, Guid stationId, UserProfile user)
 {
     var normalizedEmail = user.NormalizedEmail;
@@ -1468,9 +1511,10 @@ static async Task<bool> CanWriteStationMeasurementsAsync(WeatherDbContext db, Gu
              share.Status == "accepted" &&
              share.Permission == "write_measurements" &&
              (share.SharedWithUserProfileId == user.Id ||
-              (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))));
+             (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))));
 }
 
+// Cities are normalized once and reused by history, favorites and stations.
 static async Task<City> FindOrCreateCityAsync(
     WeatherDbContext db,
     string cityName,
@@ -1513,6 +1557,8 @@ static async Task<City> FindOrCreateCityAsync(
     return city;
 }
 
+// Request logs provide a lightweight audit trail for successful and failed
+// weather lookups.
 static async Task AddWeatherRequestLogAsync(
     WeatherDbContext db,
     Guid? userProfileId,
@@ -1539,6 +1585,7 @@ static async Task AddWeatherRequestLogAsync(
     await db.SaveChangesAsync();
 }
 
+// Keeps only the three newest searches per user in the prototype UI.
 static async Task SaveChangesAndTrimSearchHistoryAsync(WeatherDbContext db, Guid userProfileId)
 {
     await db.SaveChangesAsync();
@@ -1574,6 +1621,8 @@ static string? NormalizeThemeName(string? value)
     };
 }
 
+// Rate limits are per Auth0 subject when possible and fall back to IP for
+// unauthenticated or not-yet-identified requests.
 static string GetRateLimitPartitionKey(HttpContext context) =>
     context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
     ?? context.User.FindFirst("sub")?.Value

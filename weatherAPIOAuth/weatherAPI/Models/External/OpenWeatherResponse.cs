@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 
 namespace weatherAPI.Models.External;
 
+/// <summary>
+/// Raw JSON shape for OpenWeatherMap current-weather responses.
+/// </summary>
 public class OpenWeatherResponse
 {      
     [JsonPropertyName("coord")]

@@ -28,6 +28,7 @@
     overflow: hidden;
 }
 
+/* Semicircle UV gauge used inside the highlights grid. */
 .uv-container {
     position: relative;
     width: 100%;

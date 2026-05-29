@@ -3,6 +3,9 @@ param(
     [switch]$WithNgrok
 )
 
+# Windows/PowerShell setup script.
+# It validates an existing .env without rewriting it, or creates a new .env
+# from the minimum required user inputs and generated local passwords.
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path

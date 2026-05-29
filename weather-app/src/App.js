@@ -12,9 +12,13 @@ import { formatCityLocation } from "./utils/localizationUtils";
 import { buildApiUrl } from "./utils/apiUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
+// Main dashboard container. This component owns the authenticated API calls,
+// weather state, saved-user-data refresh keys, unit toggle and selected theme.
 const DEFAULT_CITY = "Schwenningen";
 const FORECAST_CARD_COUNT = 5;
 
+// HttpError keeps HTTP status codes available after fetch() so the UI can show
+// specific German messages for 401, 403, 404, 409, 429 and 500.
 class HttpError extends Error {
   constructor(status, message, body) {
     super(message);
@@ -24,6 +28,7 @@ class HttpError extends Error {
   }
 }
 
+// Converts backend forecast DTOs into the compact card model used by Forecast.
 const buildForecastCards = (forecast) => {
   return forecast.slice(0, FORECAST_CARD_COUNT).map((day) => ({
     day: day.day,
@@ -76,6 +81,8 @@ export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const [currentDay, setCurrentDay] = useState(getCurrentDay());
 
+  // Adds the Auth0 access token to every backend call and converts non-2xx
+  // responses into HttpError instances.
   const authFetchJson = useCallback(
     async (url, options = {}) => {
       const token = await getAccessTokenSilently({
@@ -113,6 +120,9 @@ export default function WeatherApp() {
     [getAccessTokenSilently, user?.email]
   );
 
+  // Loads current weather first, then loads UV, air quality and forecast in
+  // parallel. A request id prevents older slow responses from overwriting newer
+  // searches, and duplicate same-city requests are suppressed briefly.
   const fetchWeatherData = useCallback(
     async (nextCity) => {
       const trimmedCity = nextCity.trim();
@@ -243,6 +253,7 @@ export default function WeatherApp() {
     [authFetchJson]
   );
 
+  // Keep the clock/day label fresh while the app stays open.
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(getCurrentTime());
@@ -277,6 +288,8 @@ export default function WeatherApp() {
     }
   }, []);
 
+  // After login, load the user's default favorite city when one exists;
+  // otherwise fall back to Schwenningen.
   useEffect(() => {
     if (!isAuthenticated) {
       initialWeatherLoadedRef.current = false;
@@ -319,6 +332,7 @@ export default function WeatherApp() {
     };
   }, [isAuthenticated, authFetchJson, fetchWeatherData]);
 
+  // Load the saved color theme for the current Auth0 user.
   useEffect(() => {
     if (!isAuthenticated) {
       return;

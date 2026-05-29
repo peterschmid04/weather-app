@@ -1,3 +1,5 @@
+// Frontend-only localization helpers. They keep the UI German while allowing
+// OpenWeatherMap and Auth0 to keep their original English/API values.
 const weekdayMap = {
   Sunday: "Sonntag",
   Monday: "Montag",
@@ -79,6 +81,8 @@ const cityNameMap = {
   moscow: "Moskau",
 };
 
+// Static search suggestions for the prototype. The query field is the value
+// sent to the backend; cityName is the German display label.
 const citySuggestions = [
   { cityName: "Aachen", countryCode: "DE", query: "Aachen" },
   { cityName: "Aalen", countryCode: "DE", query: "Aalen" },

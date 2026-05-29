@@ -3,6 +3,8 @@ import "./Stations.css";
 import { formatCityLocation } from "../utils/localizationUtils";
 import { buildApiUrl } from "../utils/apiUtils";
 
+// Stations manages custom weather stations, shared stations and manual
+// measurements for the station currently selected in the parent dashboard.
 const emptyStation = {
   name: "",
   cityName: "",
@@ -33,6 +35,7 @@ const windDirectionOptions = [
   { label: "NW", degrees: 315 },
 ];
 
+// Keeps display output stable when a sensor value is optional or missing.
 const formatValue = (value, unit = "") => {
   if (value === null || value === undefined || value === "") {
     return "-";
@@ -41,6 +44,7 @@ const formatValue = (value, unit = "") => {
   return `${value}${unit ? ` ${unit}` : ""}`;
 };
 
+// Converts stored degrees back to compass labels for the measurement list.
 const formatWindDirection = (degrees) => {
   if (degrees === null || degrees === undefined || Number.isNaN(Number(degrees))) {
     return "-";
@@ -64,6 +68,8 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
     [stations, selectedStationId]
   );
 
+  // Loads owned and accepted shared stations. preferredStationId preserves the
+  // current selection after saves or refreshes when possible.
   const loadStations = useCallback(async (preferredStationId = selectedStationId) => {
     const data = await authFetchJson(buildApiUrl("/stations/"));
     setStations(data);
@@ -128,6 +134,7 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
     setEditingStationId("");
   };
 
+  // Creates or updates station metadata. Only the station name is required.
   const saveStation = async (event) => {
     event.preventDefault();
     setMessage("");
@@ -190,6 +197,8 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
     }
   };
 
+  // Adds a manual measurement to the selected station when the current user has
+  // owner or write_measurements access.
   const createMeasurement = async (event) => {
     event.preventDefault();
     if (!selectedStationId) {

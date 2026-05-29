@@ -15,6 +15,52 @@ Das Projekt ist so vorbereitet, dass ein frischer Clone mit lokaler `.env` über
 - Optionaler ngrok-Tunnel für öffentlichen Zugriff auf das lokale Frontend.
 - Optionale ausführliche Backend-Datei-Logs.
 
+## Projektstruktur und Dateirollen
+
+Root-Dateien:
+
+- `README.md`: Hauptdokumentation fÃ¼r Setup, Architektur, Auth0, OpenWeatherMap, Docker, Datenbank und Tests.
+- `WEATHER_APP_TODO.md`: Noch offene oder zu prÃ¼fende Aufgaben aus Reviews und Projektplanung.
+- `WEATHER_APP_DONE.md`: Bereits erledigte Punkte als Arbeitsnachweis.
+- `.env.example`: Einzige Vorlage fÃ¼r lokale Konfiguration; echte Werte kommen nur in `.env`.
+- `.gitignore`: SchÃ¼tzt lokale Secrets, Build-Ausgaben, Logs und AbhÃ¤ngigkeiten vor Git.
+- `docker-compose.yml`: Startet Frontend, Backend, PostgreSQL, pgAdmin und optional ngrok.
+- `start-weather-app.bat`: Windows-CMD-Wrapper fÃ¼r das PowerShell-Setup.
+- `start-weather-app.ps1`: Windows-Setupscript; validiert oder erzeugt `.env` und startet Docker Compose.
+- `start-weather-app.sh`: macOS/Linux-Setupscript mit gleicher Aufgabe wie die PowerShell-Variante.
+
+Docker-Ordner:
+
+- `docker/postgres/init/001-ef-migrations-history.sql`: Bereitet die EF-Core-Migrationstabelle auf frischen Datenbank-Volumes vor.
+- `docker/pgadmin/servers.json`: Registriert den PostgreSQL-Server automatisch in pgAdmin.
+
+Frontend:
+
+- `weather-app/README.md`: Kurzdokumentation nur fÃ¼r das React-Frontend.
+- `weather-app/package.json`: React/CRA-AbhÃ¤ngigkeiten und npm-Scripts.
+- `weather-app/public/`: HTML-Einstieg, Manifest, Robots und App-Icons.
+- `weather-app/src/index.js`: React-Einstieg und Auth0Provider-Konfiguration.
+- `weather-app/src/App.js`: Zentraler Dashboard-Container, Wetterabruf, Auth-API-Wrapper, Theme und App-State.
+- `weather-app/src/components/`: UI-Komponenten fÃ¼r Login, Sidebar, Forecast, Highlights, Favoriten, Freigaben und Wetterstationen.
+- `weather-app/src/utils/`: Reine Hilfsfunktionen fÃ¼r API-Pfade, Wettericons, Statuslabels und deutsche Anzeige-/Suchtexte.
+- `weather-app/src/images/`: Lokale SVG-Assets fÃ¼r Wetterbilder und Icons.
+
+Backend:
+
+- `weatherAPIOAuth/weatherAPI.sln`: .NET Solution mit Backend und Testprojekt.
+- `weatherAPIOAuth/weatherAPI/Program.cs`: Minimal-API-Startdatei mit DI, Auth0, Rate Limiting, Swagger, Migrationen und Endpunkten.
+- `weatherAPIOAuth/weatherAPI/Data/`: EF-Core-DbContext, Migration-Startup-Helfer und Design-Time-Factory.
+- `weatherAPIOAuth/weatherAPI/Models/Database/`: Tabellenmodelle fÃ¼r PostgreSQL.
+- `weatherAPIOAuth/weatherAPI/Models/Dto/`: Request-/Response-Modelle der REST-API.
+- `weatherAPIOAuth/weatherAPI/Models/External/`: Rohmodelle fÃ¼r OpenWeatherMap JSON.
+- `weatherAPIOAuth/weatherAPI/Services/`: Fachservices und OpenWeatherMap-Client.
+- `weatherAPIOAuth/weatherAPI/Security/`: Region-Helfer fuer Auth0-Permissions.
+- `weatherAPIOAuth/weatherAPI/Logging/`: Optionaler Datei-Logger fÃ¼r `LOGS=true`.
+- `weatherAPIOAuth/weatherAPI/Migrations/`: EF-Core-Migrationen fÃ¼r das PostgreSQL-Schema.
+- `weatherAPIOAuth/weatherAPI.Test/`: Backend-Unit-Tests.
+
+Hinweis zu Kommentaren: JSON-Dateien wie `package.json`, `package-lock.json`, `manifest.json` und `servers.json` dÃ¼rfen keine Kommentare enthalten. Ihre Aufgabe ist deshalb hier dokumentiert, statt die Dateien ungÃ¼ltig zu machen.
+
 ## Voraussetzungen
 
 - Docker Desktop oder Docker Engine mit Docker Compose.
@@ -363,7 +409,7 @@ Standardname:
 POSTGRES_DB=weather_app
 ```
 
-Die Datenbankdateien liegen in einem Docker Volume und nicht im lokalen OneDrive-Projektordner.
+Die Datenbankdateien liegen in einem Docker Volume und nicht im lokalen Projektordner.
 
 pgAdmin:
 
@@ -705,7 +751,7 @@ Die lokalen Build-Ausgaben liegen in Docker Volumes:
 - PostgreSQL Daten.
 - pgAdmin Daten.
 
-Der Projektordner bleibt dadurch sauber und OneDrive bekommt keine riesigen generierten Ordner.
+Der Projektordner bleibt dadurch sauber und bekommt keine riesigen generierten Ordner.
 
 ## Quellen
 

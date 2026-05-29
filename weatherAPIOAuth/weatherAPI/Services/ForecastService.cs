@@ -3,6 +3,9 @@ using weatherAPI.Models.Dto;
 using weatherAPI.Services.Interfaces;
 namespace weatherAPI.Services;
 
+/// <summary>
+/// Converts OpenWeatherMap 3-hour forecast entries into day cards for the UI.
+/// </summary>
 public class ForecastService : IForecastService
 {
     private readonly IOpenWeatherApiService _forecastApiClient;
@@ -11,6 +14,10 @@ public class ForecastService : IForecastService
         _forecastApiClient  = forecastApiClient;
     }
     
+    /// <summary>
+    /// Groups forecast entries by local day, skips the current day and uses the
+    /// entry closest to noon for icon/description.
+    /// </summary>
     public async Task<List<Forecast>?> GetForecast(double lat, double lon)
     {
         var forecastData = await _forecastApiClient.GetForecast(lat, lon);

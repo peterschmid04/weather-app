@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Manual measurement captured for a weather station.
+/// </summary>
 public class WeatherStationMeasurement
 {
     public Guid Id { get; set; }

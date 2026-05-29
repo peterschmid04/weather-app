@@ -1,3 +1,6 @@
+# Docker Compose stack for local development.
+# Services: PostgreSQL, pgAdmin, ASP.NET Core backend, React frontend and
+# optional ngrok. Secrets come from the local .env file, not from Git.
 services:
   db:
     image: postgres:latest

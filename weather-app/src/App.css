@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap");
 
+/* Global layout, theme tokens and responsive shell for the authenticated dashboard. */
 * {
   box-sizing: border-box;
   margin: 0;

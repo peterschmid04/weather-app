@@ -13,7 +13,7 @@ import iconThunderstorm from "../images/icons/thunderstorm.svg";
 import iconClear from "../images/icons/clear.svg";
 import iconFog from "../images/icons/fog.svg";
 
-// Returns main weather image based on weather condition id
+// Maps OpenWeatherMap weather condition ids to the large sidebar/forecast SVGs.
 export const getWeatherImage = (weatherId) => {
     switch (true) {
         case weatherId >= 200 && weatherId < 300:
@@ -35,7 +35,7 @@ export const getWeatherImage = (weatherId) => {
     }
 };
 
-// Returns weather icon based on weather condition id
+// Maps the same ids to smaller inline condition icons.
 export const getWeatherIcons = (weatherId) => {
     switch (true) {
         case weatherId >= 200 && weatherId < 300:

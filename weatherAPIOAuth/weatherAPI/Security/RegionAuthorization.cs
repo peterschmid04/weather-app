@@ -2,6 +2,10 @@ using System.Security.Claims;
 
 namespace weatherAPI.Security;
 
+/// <summary>
+/// Interprets Auth0 permission claims for regional weather access.
+/// No roles are stored locally; the backend reads permissions from the JWT.
+/// </summary>
 public static class RegionAuthorization
 {
     private const string RegionAllPermission = "region:all";
@@ -15,6 +19,10 @@ public static class RegionAuthorization
         "SM","TR","UA","VA"
     };
 
+    /// <summary>
+    /// Returns true when the token may request the given ISO country code.
+    /// Default access without permissions is Germany only.
+    /// </summary>
     public static bool IsCountryAllowed(ClaimsPrincipal user, string countryCode)
     {
         var perms = GetPermissions(user).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -24,6 +32,9 @@ public static class RegionAuthorization
         return false;
     }
 
+    /// <summary>
+    /// Reads Auth0 API permissions from the access token.
+    /// </summary>
     public static IReadOnlyCollection<string> GetPermissions(ClaimsPrincipal user) =>
         user.FindAll("permissions")
             .Select(permission => permission.Value)
@@ -32,6 +43,9 @@ public static class RegionAuthorization
             .OrderBy(value => value)
             .ToList();
 
+    /// <summary>
+    /// Converts raw permissions into a German label for the frontend.
+    /// </summary>
     public static string GetRegionScope(ClaimsPrincipal user)
     {
         var permissions = GetPermissions(user).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -48,6 +62,9 @@ public static class RegionAuthorization
         return "Deutschland";
     }
 
+    /// <summary>
+    /// Returns the visible region list shown in the access overview.
+    /// </summary>
     public static IReadOnlyCollection<string> GetAllowedRegionLabels(ClaimsPrincipal user) =>
         GetRegionScope(user) switch
         {

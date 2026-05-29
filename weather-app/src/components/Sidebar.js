@@ -3,6 +3,8 @@ import "./Sidebar.css";
 import { formatCityLocation, getCitySuggestions, translateWeatherDescription } from "../utils/localizationUtils";
 import { buildApiUrl } from "../utils/apiUtils";
 
+// Left dashboard column: search input, quick suggestions, recent history,
+// quick favorites and current weather summary.
 const convertTemperature = (temp, isCelsius) => isCelsius ? temp : Number(((temp * 9 / 5) + 32).toFixed(1));
 
 export default function Sidebar({
@@ -27,6 +29,8 @@ export default function Sidebar({
   const description = translateWeatherDescription(weather?.description);
   const citySuggestions = useMemo(() => getCitySuggestions(city), [city]);
 
+  // The quick panel reuses the same authenticated backend endpoints as the
+  // lower saved-data panels, but only displays compact top entries.
   const loadSavedItems = useCallback(async () => {
     if (!authFetchJson) {
       return;
@@ -55,6 +59,8 @@ export default function Sidebar({
     onSelectCity?.(nextCity, displayCity);
   };
 
+  // Optimistic delete: remove from the quick UI immediately and reload when
+  // the backend rejects the change.
   const deleteHistory = async (historyId) => {
     setQuickHistory((current) => current.filter((item) => item.id !== historyId));
 
@@ -66,6 +72,8 @@ export default function Sidebar({
     }
   };
 
+  // Marks one favorite as startup city. Backend guarantees only one default
+  // favorite per user remains active.
   const setDefaultFavorite = async (favoriteId) => {
     setQuickFavorites((current) =>
       current.map((favorite) => ({

@@ -2,6 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace weatherAPI.Models.External;
 
+/// <summary>
+/// Country and sun-time metadata from the OpenWeatherMap current-weather
+/// response.
+/// </summary>
 public class Sys
 {
     [JsonPropertyName("country")]

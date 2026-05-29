@@ -1,5 +1,8 @@
 @weatherAPI_HostAddress = http://localhost:5122
 
+# Small manual REST scratch file for IDEs that support .http requests.
+# Authenticated project endpoints normally need a Bearer token from Auth0.
+
 GET {{weatherAPI_HostAddress}}/weatherforecast/
 Accept: application/json
 

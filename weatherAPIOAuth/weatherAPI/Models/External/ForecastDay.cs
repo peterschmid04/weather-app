@@ -2,6 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace weatherAPI.Models.External;
 
+/// <summary>
+/// One 3-hour forecast entry returned by OpenWeatherMap.
+/// The backend groups these entries into daily cards for the frontend.
+/// </summary>
 public class ForecastDay
 {
     [JsonPropertyName("dt")] 

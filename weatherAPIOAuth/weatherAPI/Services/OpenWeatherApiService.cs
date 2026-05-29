@@ -7,10 +7,17 @@ using weatherAPI.Services.Interfaces;
 
 namespace weatherAPI.Services;
 
+/// <summary>
+/// Low-level OpenWeatherMap client. It knows the external API URLs and returns
+/// raw external DTOs or primitive values; higher services map these values to
+/// frontend-facing response DTOs.
+/// </summary>
 public class OpenWeatherApiService : IOpenWeatherApiService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    // Targeted aliases avoid known OpenWeatherMap ambiguity without changing
+    // the user's search text in the frontend.
     private static readonly Dictionary<string, string> WeatherQueryAliases = new(StringComparer.OrdinalIgnoreCase)
     {
         ["freiburg"] = "Freiburg,DE",
@@ -34,6 +41,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         _configuration = configuration;
     }
     
+    /// <summary>
+    /// Loads current weather by city query.
+    /// </summary>
     public async Task<OpenWeatherResponse?> GetWeather(string city)
     {
         var apiKey = GetRequiredApiKey();
@@ -47,6 +57,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         return JsonSerializer.Deserialize<OpenWeatherResponse>(json);
     }
 
+    /// <summary>
+    /// Normalizes whitespace and applies a small alias table for ambiguous city names.
+    /// </summary>
     private static string BuildWeatherQuery(string city)
     {
         var normalizedCity = NormalizeWhitespace(city);
@@ -81,6 +94,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
     }
     
+    /// <summary>
+    /// Loads the OpenWeatherMap air quality index for coordinates.
+    /// </summary>
     public async Task<double?> GetAirQuality(double lat, double lon)
     {
         var apiKey = GetRequiredApiKey();
@@ -97,6 +113,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         return aqiValue;
     }
     
+    /// <summary>
+    /// Loads free 5-day/3-hour forecast data for coordinates.
+    /// </summary>
     public async Task<ForecastApiResponse?> GetForecast(double lat, double lon)
     {
         var apiKey = GetRequiredApiKey();
@@ -111,6 +130,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         return forecastData;
     }
     
+    /// <summary>
+    /// Loads UV index from One Call 3.0 when the OpenWeatherMap account supports it.
+    /// </summary>
     public async Task<double?> GetUvIndex(double lat, double lon)
     {
         var apiKey = GetRequiredApiKey();
@@ -127,6 +149,9 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         return uvValue;
     }
 
+    /// <summary>
+    /// Reads the API key from configuration and fails fast if it is missing.
+    /// </summary>
     private string GetRequiredApiKey()
     {
         var apiKey = _configuration["OpenWeatherMap:ApiKey"];

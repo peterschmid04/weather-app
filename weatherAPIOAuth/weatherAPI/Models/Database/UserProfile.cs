@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Local profile row for an Auth0 user. Stores app metadata only, never passwords.
+/// </summary>
 public class UserProfile
 {
     public Guid Id { get; set; }

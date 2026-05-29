@@ -1,3 +1,4 @@
+/* Sidebar layout: search, quick history/favorites and current weather summary. */
 .sidebar {
   padding: 20px;
   grid-column: 1;

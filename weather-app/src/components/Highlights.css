@@ -1,3 +1,4 @@
+/* Highlight grid for UV, wind, sun times, humidity, visibility and air quality. */
 .highlights-container {
   grid-column: 2 / 5; /* Occupies columns 2 to 4 */
   grid-row: 3;

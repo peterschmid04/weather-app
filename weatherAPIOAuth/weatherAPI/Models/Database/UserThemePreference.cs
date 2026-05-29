@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Per-user UI theme selection.
+/// </summary>
 public class UserThemePreference
 {
     public Guid Id { get; set; }

@@ -1,4 +1,6 @@
 @echo off
+rem Windows CMD wrapper. The real setup logic lives in start-weather-app.ps1.
+rem This file keeps double-click/Command Prompt startup simple and UTF-8 safe.
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"

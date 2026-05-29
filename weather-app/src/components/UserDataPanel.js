@@ -3,6 +3,8 @@ import "./UserDataPanel.css";
 import { formatCityLocation } from "../utils/localizationUtils";
 import { buildApiUrl } from "../utils/apiUtils";
 
+// UserDataPanel groups all user-scoped persisted settings outside the weather
+// dashboard itself: theme, favorites and weather-station sharing.
 const emptyFavorite = {
   cityName: "",
   countryCode: "DE",
@@ -28,6 +30,7 @@ const isSameFavorite = (favorite, payload) =>
   normalizeCity(favorite.cityName) === normalizeCity(payload.cityName) &&
   normalizeCountry(favorite.countryCode) === normalizeCountry(payload.countryCode);
 
+// Converts common backend errors into messages that make sense in this panel.
 const getFriendlyErrorMessage = (error, fallback) => {
   if (error?.status === 409) {
     return "Diese Stadt ist bereits in deinen Favoriten.";
@@ -68,6 +71,7 @@ export default function UserDataPanel({
   const [editingFavoriteId, setEditingFavoriteId] = useState("");
   const [message, setMessage] = useState("");
 
+  // Loads stations so the share form can offer only stations owned by the user.
   const loadStations = useCallback(async () => {
     const data = await authFetchJson(buildApiUrl("/stations/"));
     const nextStations = Array.isArray(data) ? data : [];
@@ -87,6 +91,7 @@ export default function UserDataPanel({
     });
   }, [authFetchJson, onSelectedStationChange, selectedStationId]);
 
+  // Loads outgoing shares and incoming invitations/accepted shares in one call.
   const loadShares = useCallback(async () => {
     const data = await authFetchJson(buildApiUrl("/station-shares/"));
     setShares({
@@ -140,6 +145,8 @@ export default function UserDataPanel({
     }
   };
 
+  // Create or update a favorite city. No-op edits are accepted quietly to avoid
+  // showing an error when the user clicks save without changes.
   const saveFavorite = async (event) => {
     event.preventDefault();
     if (!favoriteForm.cityName.trim()) {
@@ -252,6 +259,8 @@ export default function UserDataPanel({
     onSelectCity(cityName);
   };
 
+  // Creates an email-based station invitation. The backend links it to a user
+  // profile when that email logs in through Auth0.
   const saveShare = async (event) => {
     event.preventDefault();
     if (!shareForm.stationId) {

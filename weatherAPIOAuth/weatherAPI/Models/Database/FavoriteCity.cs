@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// User-scoped favorite city. IsDefault marks the startup city after login.
+/// </summary>
 public class FavoriteCity
 {
     public Guid Id { get; set; }

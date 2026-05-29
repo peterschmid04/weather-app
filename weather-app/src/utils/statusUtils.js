@@ -1,3 +1,5 @@
+// Converts numeric weather values into compact German status labels for the
+// highlight cards. The raw values still come from the backend/API.
 export const getStatusWind = (value) => {
   switch (true) {
     case value <= 5:

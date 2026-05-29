@@ -2,6 +2,10 @@ using weatherAPI.Models.External;
 
 namespace weatherAPI.Services.Interfaces;
 
+/// <summary>
+/// Boundary around OpenWeatherMap calls so higher services can be tested
+/// without depending directly on HTTP or external API URLs.
+/// </summary>
 public interface IOpenWeatherApiService
 {
     Task<OpenWeatherResponse?> GetWeather(string city);

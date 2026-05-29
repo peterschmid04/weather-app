@@ -1,5 +1,8 @@
 namespace weatherAPI.Models.Database;
 
+/// <summary>
+/// Invitation or accepted permission that grants another Auth0 user access to a station.
+/// </summary>
 public class WeatherStationShare
 {
     public Guid Id { get; set; }

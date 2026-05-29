@@ -2,6 +2,10 @@ using System.Text;
 
 namespace weatherAPI.Logging;
 
+/// <summary>
+/// Optional file logger used only when detailed logs are enabled by environment
+/// variable. It writes verbose backend diagnostics into the configured log file.
+/// </summary>
 public sealed class DetailedFileLoggerProvider : ILoggerProvider
 {
     private readonly object syncRoot = new();
@@ -9,6 +13,7 @@ public sealed class DetailedFileLoggerProvider : ILoggerProvider
 
     public DetailedFileLoggerProvider(string filePath)
     {
+        // Create the target directory lazily so LOGS=false never creates it.
         var directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrWhiteSpace(directory))
         {
@@ -25,6 +30,10 @@ public sealed class DetailedFileLoggerProvider : ILoggerProvider
 
     public void Dispose() => writer.Dispose();
 
+    /// <summary>
+    /// Minimal ILogger implementation that serializes writes through a lock so
+    /// concurrent requests do not interleave log lines.
+    /// </summary>
     private sealed class DetailedFileLogger(string categoryName, StreamWriter writer, object syncRoot) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
