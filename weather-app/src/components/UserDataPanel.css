@@ -75,6 +75,7 @@
   border-radius: 15px;
   padding: 12px;
   min-width: 0;
+  min-height: 360px;
 }
 
 .access-panel {
@@ -120,7 +121,7 @@
 
 .share-sections {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
@@ -141,6 +142,9 @@
   background: var(--surface);
   border-radius: 12px;
   padding: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .access-grid {
@@ -172,7 +176,8 @@
 .saved-list {
   display: grid;
   gap: 8px;
-  max-height: 220px;
+  max-height: 360px;
+  min-height: 260px;
   overflow: auto;
 }
 
