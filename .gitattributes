@@ -1,0 +1,8 @@
+* text=auto
+
+# Shell scripts must keep LF line endings so they run on Linux/macOS and inside
+# Linux containers.
+*.sh text eol=lf
+
+# Markdown is rendered on GitHub and should stay stable across platforms.
+*.md text eol=lf

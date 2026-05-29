@@ -19,13 +19,13 @@ Das Projekt ist so vorbereitet, dass ein frischer Clone mit lokaler `.env` über
 
 Root-Dateien:
 
-- `README.md`: Hauptdokumentation fÃ¼r Setup, Architektur, Auth0, OpenWeatherMap, Docker, Datenbank und Tests.
-- `WEATHER_APP_TODO.md`: Noch offene oder zu prÃ¼fende Aufgaben aus Reviews und Projektplanung.
+- `README.md`: Hauptdokumentation für Setup, Architektur, Auth0, OpenWeatherMap, Docker, Datenbank und Tests.
+- `WEATHER_APP_TODO.md`: Noch offene oder zu prüfende Aufgaben aus Reviews und Projektplanung.
 - `WEATHER_APP_DONE.md`: Bereits erledigte Punkte als Arbeitsnachweis.
-- `.env.example`: Einzige Vorlage fÃ¼r lokale Konfiguration; echte Werte kommen nur in `.env`.
-- `.gitignore`: SchÃ¼tzt lokale Secrets, Build-Ausgaben, Logs und AbhÃ¤ngigkeiten vor Git.
+- `.env.example`: Einzige Vorlage für lokale Konfiguration; echte Werte kommen nur in `.env`.
+- `.gitignore`: Schützt lokale Secrets, Build-Ausgaben, Logs und Abhängigkeiten vor Git.
 - `docker-compose.yml`: Startet Frontend, Backend, PostgreSQL, pgAdmin und optional ngrok.
-- `start-weather-app.bat`: Windows-CMD-Wrapper fÃ¼r das PowerShell-Setup.
+- `start-weather-app.bat`: Windows-CMD-Wrapper für das PowerShell-Setup.
 - `start-weather-app.ps1`: Windows-Setupscript; validiert oder erzeugt `.env` und startet Docker Compose.
 - `start-weather-app.sh`: macOS/Linux-Setupscript mit gleicher Aufgabe wie die PowerShell-Variante.
 
@@ -36,30 +36,30 @@ Docker-Ordner:
 
 Frontend:
 
-- `weather-app/README.md`: Kurzdokumentation nur fÃ¼r das React-Frontend.
-- `weather-app/package.json`: React/CRA-AbhÃ¤ngigkeiten und npm-Scripts.
+- `weather-app/README.md`: Kurzdokumentation nur für das React-Frontend.
+- `weather-app/package.json`: React/CRA-Abhängigkeiten und npm-Scripts.
 - `weather-app/public/`: HTML-Einstieg, Manifest, Robots und App-Icons.
 - `weather-app/src/index.js`: React-Einstieg und Auth0Provider-Konfiguration.
 - `weather-app/src/App.js`: Zentraler Dashboard-Container, Wetterabruf, Auth-API-Wrapper, Theme und App-State.
-- `weather-app/src/components/`: UI-Komponenten fÃ¼r Login, Sidebar, Forecast, Highlights, Favoriten, Freigaben und Wetterstationen.
-- `weather-app/src/utils/`: Reine Hilfsfunktionen fÃ¼r API-Pfade, Wettericons, Statuslabels und deutsche Anzeige-/Suchtexte.
-- `weather-app/src/images/`: Lokale SVG-Assets fÃ¼r Wetterbilder und Icons.
+- `weather-app/src/components/`: UI-Komponenten für Login, Sidebar, Forecast, Highlights, Favoriten, Freigaben und Wetterstationen.
+- `weather-app/src/utils/`: Reine Hilfsfunktionen für API-Pfade, Wettericons, Statuslabels und deutsche Anzeige-/Suchtexte.
+- `weather-app/src/images/`: Lokale SVG-Assets für Wetterbilder und Icons.
 
 Backend:
 
 - `weatherAPIOAuth/weatherAPI.sln`: .NET Solution mit Backend und Testprojekt.
 - `weatherAPIOAuth/weatherAPI/Program.cs`: Minimal-API-Startdatei mit DI, Auth0, Rate Limiting, Swagger, Migrationen und Endpunkten.
 - `weatherAPIOAuth/weatherAPI/Data/`: EF-Core-DbContext, Migration-Startup-Helfer und Design-Time-Factory.
-- `weatherAPIOAuth/weatherAPI/Models/Database/`: Tabellenmodelle fÃ¼r PostgreSQL.
+- `weatherAPIOAuth/weatherAPI/Models/Database/`: Tabellenmodelle für PostgreSQL.
 - `weatherAPIOAuth/weatherAPI/Models/Dto/`: Request-/Response-Modelle der REST-API.
-- `weatherAPIOAuth/weatherAPI/Models/External/`: Rohmodelle fÃ¼r OpenWeatherMap JSON.
+- `weatherAPIOAuth/weatherAPI/Models/External/`: Rohmodelle für OpenWeatherMap JSON.
 - `weatherAPIOAuth/weatherAPI/Services/`: Fachservices und OpenWeatherMap-Client.
 - `weatherAPIOAuth/weatherAPI/Security/`: Region-Helfer fuer Auth0-Permissions.
-- `weatherAPIOAuth/weatherAPI/Logging/`: Optionaler Datei-Logger fÃ¼r `LOGS=true`.
-- `weatherAPIOAuth/weatherAPI/Migrations/`: EF-Core-Migrationen fÃ¼r das PostgreSQL-Schema.
+- `weatherAPIOAuth/weatherAPI/Logging/`: Optionaler Datei-Logger für `LOGS=true`.
+- `weatherAPIOAuth/weatherAPI/Migrations/`: EF-Core-Migrationen für das PostgreSQL-Schema.
 - `weatherAPIOAuth/weatherAPI.Test/`: Backend-Unit-Tests.
 
-Hinweis zu Kommentaren: JSON-Dateien wie `package.json`, `package-lock.json`, `manifest.json` und `servers.json` dÃ¼rfen keine Kommentare enthalten. Ihre Aufgabe ist deshalb hier dokumentiert, statt die Dateien ungÃ¼ltig zu machen.
+Hinweis zu Kommentaren: JSON-Dateien wie `package.json`, `package-lock.json`, `manifest.json` und `servers.json` dürfen keine Kommentare enthalten. Ihre Aufgabe ist deshalb hier dokumentiert, statt die Dateien ungültig zu machen.
 
 ## Weitere Dokumentation
 
@@ -110,7 +110,23 @@ macOS oder Linux:
 bash ./start-weather-app.sh
 ```
 
-Die Startdateien fragen nur die benoetigten Werte ab: Auth0 Domain, Auth0 Audience, Auth0 ClientId, OpenWeatherMap API Key und optional ngrok. PostgreSQL-Datenbankname, PostgreSQL-User, sichere lokale Passwoerter und Auth0-Connection-Namen werden automatisch gesetzt.
+Die Startdateien fragen nur die Werte ab, die nicht sinnvoll geraten werden können:
+Auth0 Domain, Auth0 Audience, Auth0 ClientId, OpenWeatherMap API Key und optional
+ngrok.
+
+Diese Werte werden automatisch in die lokale `.env` geschrieben:
+
+- `POSTGRES_DB=weather_app`: fester lokaler Datenbankname.
+- `POSTGRES_USER=weather_app`: fester lokaler PostgreSQL-User.
+- `POSTGRES_PASSWORD`: zufällig generiertes lokales PostgreSQL-Passwort.
+- `PGADMIN_DEFAULT_EMAIL=admin@example.com`: lokaler pgAdmin-Login.
+- `PGADMIN_DEFAULT_PASSWORD`: eigenes zufällig generiertes pgAdmin-Passwort.
+- Auth0-Connection-Namen wie `google-oauth2`, `apple`, `facebook` und `github`.
+
+Wichtig: Die Auth0-Connection-Namen sind keine Tokens und keine Secrets. Sie
+müssen nur zu den Connection-Namen in deinem Auth0 Dashboard passen. Google-,
+Apple-, Facebook- oder GitHub-Client-Secrets gehören nicht in `.env`, sondern in
+die jeweilige Auth0 Social Connection.
 
 Wenn `.env` bereits existiert, wird sie validiert, aber nicht neu geschrieben. Ist sie gueltig, starten die Scripts direkt Docker Compose:
 
@@ -120,7 +136,7 @@ docker compose up -d
 
 Ist `.env` unvollstaendig oder enthaelt noch Platzhalter wie `change-me-for-local-development`, brechen die Scripts mit einer klaren Meldung ab. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird spaeter doch eine bestehende `.env` ueberschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
 
-Zusatzoptionen:
+Zusatzoptionen fuer die Startdateien:
 
 ```sh
 bash ./start-weather-app.sh --validate-only
@@ -134,7 +150,20 @@ PowerShell:
 .\start-weather-app.ps1 -WithNgrok
 ```
 
-Hinweis fuer macOS/Linux: Falls die Shell-Datei nicht ausfuehrbar ist, kann man sie weiter mit `bash ./start-weather-app.sh` starten. Fuer direkten Start per `./start-weather-app.sh` einmalig `chmod +x ./start-weather-app.sh` ausfuehren. Die Datei ist fuer LF-Zeilenenden gedacht.
+`--validate-only` beziehungsweise `-ValidateOnly` prüft die Werte und startet
+Docker danach nicht. Wenn bereits eine `.env` existiert, wird nur diese Datei
+geprüft und nicht verändert.
+
+`--with-ngrok` beziehungsweise `-WithNgrok` ist vor allem für den ersten Lauf ohne
+vorhandene `.env` gedacht. Dann fragt das Script zusätzlich `NGROK_AUTHTOKEN` und
+`NGROK_URL` ab und setzt `COMPOSE_PROFILES=ngrok`. Wenn `.env` schon existiert,
+wird sie nicht neu geschrieben. Dann startet ngrok automatisch nur, wenn
+`NGROK_AUTHTOKEN` und `NGROK_URL` in `.env` bereits gefüllt sind.
+
+Hinweis für macOS/Linux: Falls die Shell-Datei nicht ausführbar ist, kann man
+sie weiter mit `bash ./start-weather-app.sh` starten. Für direkten Start per
+`./start-weather-app.sh` einmalig `chmod +x ./start-weather-app.sh` ausführen.
+Die Datei ist für LF-Zeilenenden gedacht.
 
 ## Manuelle Einrichtung
 
@@ -150,7 +179,15 @@ Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-Dann `.env` ausfüllen und starten:
+Das bedeutet: Die Beispielvorlage `.env.example` wird als echte lokale `.env`
+kopiert. Danach ersetzt du in `.env` alle Platzhalter durch deine echten lokalen
+Werte. Die `.env` wird durch `.gitignore` ignoriert und darf nicht nach GitHub.
+
+Die manuelle Variante ist nur nötig, wenn du die Startdateien nicht nutzen
+willst. Bequemer ist normalerweise `start-weather-app.bat`, `start-weather-app.ps1`
+oder `start-weather-app.sh`, weil diese Scripts Passwörter automatisch erzeugen.
+
+Danach starten:
 
 ```sh
 docker compose up -d
@@ -309,14 +346,24 @@ Google, Apple, Facebook und GitHub:
 5. Tab `Applications`.
 6. Weather-App aktivieren.
 
-Die Provider-Keys bekommst du beim jeweiligen Anbieter:
+Diese Provider-Keys sind nicht für unsere `.env` gedacht. Sie werden nur im
+Auth0 Dashboard in der jeweiligen Social Connection eingetragen. Auth0 nutzt
+diese Provider-Keys, um mit Google, Apple, Facebook oder GitHub zu sprechen.
+Unser Frontend bekommt davon nur den Auth0-Connection-Namen, z. B.
+`google-oauth2`.
+
+Falls du eine Social Connection in Auth0 neu einrichtest, bekommst du die
+Provider-Keys beim jeweiligen Anbieter:
 
 - Google: Google Cloud Console OAuth Client.
 - Apple: Apple Developer Account.
 - Facebook: Meta Developer App.
 - GitHub: GitHub Developer Settings OAuth App.
 
-Wichtig bei Google: Die Google OAuth App leitet nicht direkt auf `localhost:3000`, sondern auf Auth0 zurück. In Google Cloud muss deshalb als `Authorized redirect URI` die Auth0 Callback-URL eingetragen werden:
+Wichtig bei Google: Die Google OAuth App leitet nicht direkt auf
+`localhost:3000`, sondern auf Auth0 zurück. Danach leitet Auth0 zur Weather-App
+zurück. In Google Cloud muss deshalb als `Authorized redirect URI` die Auth0
+Callback-URL eingetragen werden:
 
 ```text
 https://AUTH0_DOMAIN/login/callback
@@ -328,7 +375,11 @@ Beispiel mit deinem Auth0-Tenant:
 https://your-tenant.region.auth0.com/login/callback
 ```
 
-`your-tenant.region.auth0.com` durch deinen echten Wert aus `AUTH0_DOMAIN` ersetzen. Danach in Auth0 unter `Authentication -> Social -> Google` die Google Client ID und das Google Client Secret eintragen und die Weather-App im Tab `Applications` aktivieren.
+`your-tenant.region.auth0.com` durch deinen echten Wert aus `AUTH0_DOMAIN`
+ersetzen. Danach in Auth0 unter `Authentication -> Social -> Google` die Google
+Client ID und das Google Client Secret eintragen und die Weather-App im Tab
+`Applications` aktivieren. Wenn Google, Apple, Facebook und GitHub bei dir schon
+in Auth0 funktionieren, musst du im Projekt nichts zusätzlich dafür eintragen.
 
 Das Projekt nutzt im Frontend die Auth0 React SDK. Diese nutzt für SPAs den Authorization Code Flow mit PKCE. Das Backend validiert danach das JWT als `Authorization: Bearer <token>` mit ASP.NET Core JWT Bearer Authentication.
 
@@ -404,6 +455,14 @@ Logs:
 
 ```sh
 docker compose logs -f frontend backend db pgadmin
+```
+
+Dieser Befehl ist richtig für den normalen Stack und zeigt die laufenden Logs
+von Frontend, Backend, Datenbank und pgAdmin. Wenn ngrok aktiv ist und du auch
+ngrok-Logs sehen willst:
+
+```sh
+docker compose logs -f frontend backend db pgadmin ngrok
 ```
 
 Stoppen:
@@ -681,7 +740,6 @@ Wichtig: Rollen und Permissions werden weiterhin im Auth0 Dashboard verwaltet. D
 - Registrierung über Auth0.
 - Social Login Buttons für Google, Apple, Facebook und GitHub.
 - Wetterdashboard mit aktueller Stadt.
-- Forecast-Karten.
 - Highlights für UV, Wind, Sonnenaufgang, Sonnenuntergang, Luftfeuchtigkeit, Sichtweite und Luftqualität.
 - Suchverlauf mit maximal drei Einträgen pro Nutzer.
 - Favoriten mit CRUD.

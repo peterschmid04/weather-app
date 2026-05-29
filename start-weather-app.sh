@@ -423,17 +423,17 @@ do
   assert_env_value "${pair%%=*}" "${pair#*=}"
 done
 
-write_env_file
-
 if ! validate_env_values; then
-  echo ".env was written, but validation failed. Please check the values." >&2
+  echo "Entered values are not valid. .env was not written." >&2
   exit 1
 fi
 
 if [ "$VALIDATE_ONLY" = "true" ]; then
-  info "Entered values are valid. .env was written but Docker was not started because --validate-only was used."
+  info "Entered values are valid. .env was not written because --validate-only was used."
   exit 0
 fi
+
+write_env_file
 
 info ".env written. Starting Docker Compose..."
 compose_up
