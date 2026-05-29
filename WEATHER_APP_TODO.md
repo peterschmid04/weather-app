@@ -3,7 +3,7 @@
 ## Freigabe und Rollen
 
 - [x] Freigabe/Rollen als offenes Konzept dokumentieren.
-- [ ] Wetterstationen koennen spaeter an andere Nutzer freigegeben werden.
+- [x] Wetterstationen koennen an andere Nutzer freigegeben werden.
 - [x] Freigabe-Workflow planen: Nutzer A gibt Station an Nutzer B frei.
 - [x] Freigabe-Workflow planen: Nutzer B darf Messwerte eintragen, aber Station nicht besitzen.
 - [x] Freigabe-Workflow planen: Vertretung fuer Messwerterfassung, nicht nur Urlaubsvertretung.
@@ -36,7 +36,7 @@
 ## Frontend und Navigation
 
 - [x] Navigation/Routing pruefen: kein separates Routing noetig, im README begruendet.
-- [x] Box neben den Favoriten zeigt die aktive Wetterstation statt Suchverlauf.
+- [x] Box neben den Favoriten zeigt die Freigabe-Verwaltung fuer Wetterstationen statt Suchverlauf.
 - [ ] Responsive Darstellung mit Stationen/Favoriten nach dem Umbau visuell pruefen.
 
 ## Extra-Feature-Ideen
@@ -44,6 +44,6 @@
 - [x] Extra Feature Idee dokumentiert: Wetterstation an andere Nutzer teilen.
 - [x] Extra Feature Idee dokumentiert: Vertretung fuer Wetterstationsmesswerte.
 - [x] Extra Feature Idee dokumentiert: Rollenbasierte Admin-/Region-Ansicht.
-- [ ] Extra Feature umsetzen: Wetterstation an andere Nutzer teilen.
-- [ ] Extra Feature umsetzen: Vertretung fuer Wetterstationsmesswerte.
+- [x] Extra Feature umsetzen: Wetterstation an andere Nutzer teilen.
+- [x] Extra Feature umsetzen: Vertretung fuer Wetterstationsmesswerte.
 - [ ] Extra Feature umsetzen: Rollenbasierte Admin-/Region-Ansicht.

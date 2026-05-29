@@ -17,6 +17,8 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
 
     public DbSet<WeatherStationMeasurement> WeatherStationMeasurements => Set<WeatherStationMeasurement>();
 
+    public DbSet<WeatherStationShare> WeatherStationShares => Set<WeatherStationShare>();
+
     public DbSet<WeatherRequestLog> WeatherRequestLogs => Set<WeatherRequestLog>();
 
     public DbSet<UserThemePreference> UserThemePreferences => Set<UserThemePreference>();
@@ -28,8 +30,11 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
             entity.HasKey(user => user.Id);
             entity.Property(user => user.Auth0Subject).HasMaxLength(256).IsRequired();
             entity.Property(user => user.DisplayName).HasMaxLength(160);
+            entity.Property(user => user.Email).HasMaxLength(320);
+            entity.Property(user => user.NormalizedEmail).HasMaxLength(320);
             entity.Property(user => user.CreatedAtUtc).HasDefaultValueSql("now()");
             entity.HasIndex(user => user.Auth0Subject).IsUnique();
+            entity.HasIndex(user => user.NormalizedEmail);
         });
 
         modelBuilder.Entity<City>(entity =>
@@ -99,6 +104,32 @@ public class WeatherDbContext(DbContextOptions<WeatherDbContext> options) : DbCo
                 .HasForeignKey(measurement => measurement.WeatherStationId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(measurement => new { measurement.WeatherStationId, measurement.MeasuredAtUtc });
+        });
+
+        modelBuilder.Entity<WeatherStationShare>(entity =>
+        {
+            entity.HasKey(share => share.Id);
+            entity.Property(share => share.SharedWithEmail).HasMaxLength(320).IsRequired();
+            entity.Property(share => share.NormalizedSharedWithEmail).HasMaxLength(320).IsRequired();
+            entity.Property(share => share.Permission).HasMaxLength(40).IsRequired();
+            entity.Property(share => share.Status).HasMaxLength(20).IsRequired();
+            entity.Property(share => share.CreatedAtUtc).HasDefaultValueSql("now()");
+            entity.HasOne(share => share.WeatherStation)
+                .WithMany(station => station.Shares)
+                .HasForeignKey(share => share.WeatherStationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(share => share.Owner)
+                .WithMany(user => user.OwnedWeatherStationShares)
+                .HasForeignKey(share => share.OwnerUserProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(share => share.SharedWithUser)
+                .WithMany(user => user.ReceivedWeatherStationShares)
+                .HasForeignKey(share => share.SharedWithUserProfileId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(share => new { share.WeatherStationId, share.NormalizedSharedWithEmail }).IsUnique();
+            entity.HasIndex(share => share.OwnerUserProfileId);
+            entity.HasIndex(share => share.SharedWithUserProfileId);
+            entity.HasIndex(share => share.NormalizedSharedWithEmail);
         });
 
         modelBuilder.Entity<WeatherRequestLog>(entity =>

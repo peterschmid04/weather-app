@@ -23,4 +23,6 @@ public class WeatherStation
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<WeatherStationMeasurement> Measurements { get; set; } = new List<WeatherStationMeasurement>();
+
+    public ICollection<WeatherStationShare> Shares { get; set; } = new List<WeatherStationShare>();
 }

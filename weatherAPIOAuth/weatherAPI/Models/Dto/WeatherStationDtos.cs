@@ -35,6 +35,9 @@ public record WeatherStationResponse(
     double? Latitude,
     double? Longitude,
     DateTime CreatedAtUtc,
+    bool IsOwner,
+    string AccessLevel,
+    string? OwnerName,
     WeatherStationMeasurementResponse? LatestMeasurement);
 
 public record WeatherStationMeasurementResponse(
@@ -53,3 +56,33 @@ public record UserProfileResponse(
     string Subject,
     string? Name,
     string? Email);
+
+public record CreateWeatherStationShareRequest(
+    Guid WeatherStationId,
+    string Email,
+    string? Permission);
+
+public record WeatherStationShareOverviewResponse(
+    IReadOnlyCollection<OutgoingWeatherStationShareResponse> Outgoing,
+    IReadOnlyCollection<IncomingWeatherStationShareResponse> Incoming);
+
+public record OutgoingWeatherStationShareResponse(
+    Guid Id,
+    Guid WeatherStationId,
+    string StationName,
+    string SharedWithEmail,
+    string Permission,
+    string Status,
+    DateTime CreatedAtUtc,
+    DateTime? AcceptedAtUtc);
+
+public record IncomingWeatherStationShareResponse(
+    Guid Id,
+    Guid WeatherStationId,
+    string StationName,
+    string OwnerName,
+    string? OwnerEmail,
+    string Permission,
+    string Status,
+    DateTime CreatedAtUtc,
+    DateTime? AcceptedAtUtc);

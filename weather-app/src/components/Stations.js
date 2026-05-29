@@ -168,6 +168,11 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
       return;
     }
 
+    if (selectedStation?.accessLevel === "read") {
+      setMessage("Für diese geteilte Station hast du nur Leserechte.");
+      return;
+    }
+
     setMessage("");
     try {
       await authFetchJson(buildApiUrl(`/stations/${selectedStationId}/measurements`), {
@@ -220,18 +225,26 @@ export default function Stations({ authFetchJson, selectedStationId, onSelectedS
               <button type="button" className="station-select" onClick={() => setSelectedStationId(station.id)}>
                 <strong>{station.name}</strong>
                 <span>{formatCityLocation(station.cityName, station.countryCode)}</span>
+                {!station.isOwner && <small>Geteilt von {station.ownerName || "anderem Nutzer"}</small>}
                 {station.latestMeasurement && <small>{station.latestMeasurement.temperatureC ?? "-"} °C</small>}
               </button>
-              <div className="station-actions">
-                <button type="button" onClick={() => editStation(station)}>Bearbeiten</button>
-                <button type="button" onClick={() => deleteStation(station.id)}>Löschen</button>
-              </div>
+              {station.isOwner && (
+                <div className="station-actions">
+                  <button type="button" onClick={() => editStation(station)}>Bearbeiten</button>
+                  <button type="button" onClick={() => deleteStation(station.id)}>Löschen</button>
+                </div>
+              )}
             </article>
           ))}
         </div>
 
         <form className="measurement-form" onSubmit={createMeasurement}>
           <h3>{selectedStation ? selectedStation.name : "Messwerte"}</h3>
+          {selectedStation && !selectedStation.isOwner && (
+            <p className="shared-note">
+              Geteilte Station: {selectedStation.accessLevel === "read" ? "nur ansehen" : "Messwerte eintragen erlaubt"}.
+            </p>
+          )}
           <input value={measurementForm.temperatureC} onChange={(event) => updateMeasurementForm("temperatureC", event.target.value)} placeholder="Temperatur °C" type="number" step="0.1" />
           <input value={measurementForm.humidityPercent} onChange={(event) => updateMeasurementForm("humidityPercent", event.target.value)} placeholder="Luftfeuchte %" type="number" step="0.1" />
           <input value={measurementForm.pressureHpa} onChange={(event) => updateMeasurementForm("pressureHpa", event.target.value)} placeholder="Luftdruck hPa" type="number" step="0.1" />

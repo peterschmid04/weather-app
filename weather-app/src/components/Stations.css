@@ -119,6 +119,12 @@
   font-size: 1rem;
 }
 
+.shared-note {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .measurement-list {
   display: grid;
   gap: 8px;

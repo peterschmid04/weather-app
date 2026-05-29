@@ -576,9 +576,16 @@ stations.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db
         return Results.Unauthorized();
     }
 
+    var normalizedEmail = user.NormalizedEmail;
+
     var result = await db.WeatherStations
         .AsNoTracking()
-        .Where(station => station.UserProfileId == user.Id)
+        .Where(station =>
+            station.UserProfileId == user.Id ||
+            station.Shares.Any(share =>
+                share.Status == "accepted" &&
+                (share.SharedWithUserProfileId == user.Id ||
+                 (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail))))
         .OrderBy(station => station.Name)
         .Select(station => new WeatherStationResponse(
             station.Id,
@@ -589,6 +596,17 @@ stations.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db
             station.Latitude,
             station.Longitude,
             station.CreatedAtUtc,
+            station.UserProfileId == user.Id,
+            station.UserProfileId == user.Id
+                ? "owner"
+                : station.Shares
+                    .Where(share =>
+                        share.Status == "accepted" &&
+                        (share.SharedWithUserProfileId == user.Id ||
+                         (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))
+                    .Select(share => share.Permission)
+                    .FirstOrDefault() ?? "read",
+            station.User.DisplayName ?? station.User.Email,
             station.Measurements
                 .OrderByDescending(measurement => measurement.MeasuredAtUtc)
                 .Select(measurement => new WeatherStationMeasurementResponse(
@@ -678,6 +696,9 @@ stations.MapPost("/", async (
         station.Latitude,
         station.Longitude,
         station.CreatedAtUtc,
+        true,
+        "owner",
+        user.DisplayName ?? user.Email,
         null));
 });
 
@@ -759,6 +780,9 @@ stations.MapPut("/{stationId:guid}", async (
         station.Latitude,
         station.Longitude,
         station.CreatedAtUtc,
+        true,
+        "owner",
+        user.DisplayName ?? user.Email,
         null));
 });
 
@@ -797,10 +821,7 @@ stations.MapGet("/{stationId:guid}/measurements", async (
         return Results.Unauthorized();
     }
 
-    var stationExists = await db.WeatherStations
-        .AnyAsync(station => station.Id == stationId && station.UserProfileId == user.Id);
-
-    if (!stationExists)
+    if (!await CanReadStationAsync(db, stationId, user))
     {
         return Results.NotFound(new { message = "Station not found." });
     }
@@ -843,20 +864,20 @@ stations.MapPost("/{stationId:guid}/measurements", async (
         return Results.BadRequest(new { message = validationError });
     }
 
-    var station = await db.WeatherStations
-        .SingleOrDefaultAsync(existingStation =>
-            existingStation.Id == stationId &&
-            existingStation.UserProfileId == user.Id);
-
-    if (station is null)
+    if (!await CanReadStationAsync(db, stationId, user))
     {
         return Results.NotFound(new { message = "Station not found." });
+    }
+
+    if (!await CanWriteStationMeasurementsAsync(db, stationId, user))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
     var measurement = new WeatherStationMeasurement
     {
         Id = Guid.NewGuid(),
-        WeatherStationId = station.Id,
+        WeatherStationId = stationId,
         MeasuredAtUtc = request.MeasuredAtUtc ?? DateTime.UtcNow,
         TemperatureC = request.TemperatureC,
         HumidityPercent = request.HumidityPercent,
@@ -870,7 +891,201 @@ stations.MapPost("/{stationId:guid}/measurements", async (
     db.WeatherStationMeasurements.Add(measurement);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/stations/{station.Id}/measurements/{measurement.Id}", ToMeasurementResponse(measurement));
+    return Results.Created($"/stations/{stationId}/measurements/{measurement.Id}", ToMeasurementResponse(measurement));
+});
+
+var stationShares = app.MapGroup("/station-shares");
+
+stationShares.MapGet("/", async (HttpContext http, [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var normalizedEmail = user.NormalizedEmail;
+
+    var outgoing = await db.WeatherStationShares
+        .AsNoTracking()
+        .Where(share => share.OwnerUserProfileId == user.Id)
+        .OrderByDescending(share => share.CreatedAtUtc)
+        .Select(share => new OutgoingWeatherStationShareResponse(
+            share.Id,
+            share.WeatherStationId,
+            share.WeatherStation.Name,
+            share.SharedWithEmail,
+            share.Permission,
+            share.Status,
+            share.CreatedAtUtc,
+            share.AcceptedAtUtc))
+        .ToListAsync();
+
+    var incoming = await db.WeatherStationShares
+        .AsNoTracking()
+        .Where(share =>
+            share.OwnerUserProfileId != user.Id &&
+            (share.SharedWithUserProfileId == user.Id ||
+             (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))
+        .OrderByDescending(share => share.CreatedAtUtc)
+        .Select(share => new IncomingWeatherStationShareResponse(
+            share.Id,
+            share.WeatherStationId,
+            share.WeatherStation.Name,
+            share.Owner.DisplayName ?? share.Owner.Email ?? "Unbekannter Nutzer",
+            share.Owner.Email,
+            share.Permission,
+            share.Status,
+            share.CreatedAtUtc,
+            share.AcceptedAtUtc))
+        .ToListAsync();
+
+    return Results.Ok(new WeatherStationShareOverviewResponse(outgoing, incoming));
+});
+
+stationShares.MapPost("/", async (
+    HttpContext http,
+    [FromBody] CreateWeatherStationShareRequest request,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var validationError = ValidateShareRequest(request);
+    if (validationError is not null)
+    {
+        return Results.BadRequest(new { message = validationError });
+    }
+
+    var normalizedEmail = NormalizeEmail(request.Email);
+    if (string.Equals(user.NormalizedEmail, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.BadRequest(new { message = "You cannot share a station with yourself." });
+    }
+
+    var station = await db.WeatherStations
+        .SingleOrDefaultAsync(existing => existing.Id == request.WeatherStationId && existing.UserProfileId == user.Id);
+
+    if (station is null)
+    {
+        return Results.NotFound(new { message = "Station not found." });
+    }
+
+    var duplicateExists = await db.WeatherStationShares
+        .AnyAsync(share =>
+            share.WeatherStationId == station.Id &&
+            share.NormalizedSharedWithEmail == normalizedEmail);
+
+    if (duplicateExists)
+    {
+        return Results.Conflict(new { message = "Station is already shared with this email." });
+    }
+
+    var targetUser = await db.UserProfiles.SingleOrDefaultAsync(existing => existing.NormalizedEmail == normalizedEmail);
+    var permission = NormalizeSharePermission(request.Permission) ?? "write_measurements";
+    var share = new WeatherStationShare
+    {
+        Id = Guid.NewGuid(),
+        WeatherStationId = station.Id,
+        OwnerUserProfileId = user.Id,
+        SharedWithUserProfileId = targetUser?.Id,
+        SharedWithEmail = request.Email.Trim(),
+        NormalizedSharedWithEmail = normalizedEmail,
+        Permission = permission,
+        Status = "pending"
+    };
+
+    db.WeatherStationShares.Add(share);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/station-shares/{share.Id}", new OutgoingWeatherStationShareResponse(
+        share.Id,
+        station.Id,
+        station.Name,
+        share.SharedWithEmail,
+        share.Permission,
+        share.Status,
+        share.CreatedAtUtc,
+        share.AcceptedAtUtc));
+});
+
+stationShares.MapPost("/{shareId:guid}/accept", async (
+    HttpContext http,
+    Guid shareId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (string.IsNullOrWhiteSpace(user.NormalizedEmail))
+    {
+        return Results.BadRequest(new { message = "Your Auth0 profile needs an email address to accept shares." });
+    }
+
+    var share = await db.WeatherStationShares
+        .Include(existing => existing.WeatherStation)
+        .Include(existing => existing.Owner)
+        .SingleOrDefaultAsync(existing =>
+            existing.Id == shareId &&
+            existing.OwnerUserProfileId != user.Id &&
+            (existing.SharedWithUserProfileId == user.Id ||
+             existing.NormalizedSharedWithEmail == user.NormalizedEmail));
+
+    if (share is null)
+    {
+        return Results.NotFound(new { message = "Share not found." });
+    }
+
+    share.SharedWithUserProfileId = user.Id;
+    share.Status = "accepted";
+    share.AcceptedAtUtc ??= DateTime.UtcNow;
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new IncomingWeatherStationShareResponse(
+        share.Id,
+        share.WeatherStationId,
+        share.WeatherStation.Name,
+        share.Owner.DisplayName ?? share.Owner.Email ?? "Unbekannter Nutzer",
+        share.Owner.Email,
+        share.Permission,
+        share.Status,
+        share.CreatedAtUtc,
+        share.AcceptedAtUtc));
+});
+
+stationShares.MapDelete("/{shareId:guid}", async (
+    HttpContext http,
+    Guid shareId,
+    [FromServices] WeatherDbContext db) =>
+{
+    var user = await GetOrCreateCurrentUserAsync(http, db);
+    if (user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var normalizedEmail = user.NormalizedEmail;
+    var share = await db.WeatherStationShares
+        .SingleOrDefaultAsync(existing =>
+            existing.Id == shareId &&
+            (existing.OwnerUserProfileId == user.Id ||
+             existing.SharedWithUserProfileId == user.Id ||
+             (normalizedEmail != null && existing.NormalizedSharedWithEmail == normalizedEmail)));
+
+    if (share is null)
+    {
+        return Results.NotFound(new { message = "Share not found." });
+    }
+
+    db.WeatherStationShares.Remove(share);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
 });
 
 app.Run();  
@@ -884,8 +1099,31 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
     }
 
     var user = await db.UserProfiles.SingleOrDefaultAsync(existingUser => existingUser.Auth0Subject == subject);
+    var displayName = http.User.FindFirst("name")?.Value ?? http.User.FindFirst(ClaimTypes.Email)?.Value;
+    var email = http.User.FindFirst(ClaimTypes.Email)?.Value ?? http.User.FindFirst("email")?.Value;
+    var normalizedEmail = NormalizeEmailOrNull(email);
+
     if (user is not null)
     {
+        var changed = false;
+        if (!string.Equals(user.DisplayName, displayName, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(displayName))
+        {
+            user.DisplayName = displayName;
+            changed = true;
+        }
+
+        if (!string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+            user.NormalizedEmail = normalizedEmail;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync();
+        }
+
         return user;
     }
 
@@ -893,7 +1131,9 @@ static async Task<UserProfile?> GetOrCreateCurrentUserAsync(HttpContext http, We
     {
         Id = Guid.NewGuid(),
         Auth0Subject = subject,
-        DisplayName = http.User.FindFirst("name")?.Value ?? http.User.FindFirst(ClaimTypes.Email)?.Value
+        DisplayName = displayName,
+        Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
+        NormalizedEmail = normalizedEmail
     };
 
     db.UserProfiles.Add(user);
@@ -1002,6 +1242,67 @@ static string? ValidateMeasurementRequest(CreateWeatherStationMeasurementRequest
     }
 
     return null;
+}
+
+static string? ValidateShareRequest(CreateWeatherStationShareRequest request)
+{
+    if (request.WeatherStationId == Guid.Empty)
+    {
+        return "Weather station is required.";
+    }
+
+    if (string.IsNullOrWhiteSpace(request.Email))
+    {
+        return "Email is required.";
+    }
+
+    var email = request.Email.Trim();
+    if (email.Length > 320 || !email.Contains('@') || email.StartsWith('@') || email.EndsWith('@'))
+    {
+        return "Email must be a valid email address.";
+    }
+
+    if (NormalizeSharePermission(request.Permission) is null)
+    {
+        return "Permission must be read or write_measurements.";
+    }
+
+    return null;
+}
+
+static string? NormalizeSharePermission(string? value) =>
+    value?.Trim().ToLowerInvariant() switch
+    {
+        null or "" => "write_measurements",
+        "read" => "read",
+        "write" => "write_measurements",
+        "write_measurements" => "write_measurements",
+        _ => null
+    };
+
+static async Task<bool> CanReadStationAsync(WeatherDbContext db, Guid stationId, UserProfile user)
+{
+    var normalizedEmail = user.NormalizedEmail;
+    return await db.WeatherStations.AnyAsync(station =>
+        station.Id == stationId &&
+        (station.UserProfileId == user.Id ||
+         station.Shares.Any(share =>
+             share.Status == "accepted" &&
+             (share.SharedWithUserProfileId == user.Id ||
+              (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))));
+}
+
+static async Task<bool> CanWriteStationMeasurementsAsync(WeatherDbContext db, Guid stationId, UserProfile user)
+{
+    var normalizedEmail = user.NormalizedEmail;
+    return await db.WeatherStations.AnyAsync(station =>
+        station.Id == stationId &&
+        (station.UserProfileId == user.Id ||
+         station.Shares.Any(share =>
+             share.Status == "accepted" &&
+             share.Permission == "write_measurements" &&
+             (share.SharedWithUserProfileId == user.Id ||
+              (normalizedEmail != null && share.NormalizedSharedWithEmail == normalizedEmail)))));
 }
 
 static async Task<City> FindOrCreateCityAsync(
@@ -1117,3 +1418,8 @@ static string NormalizeCountryCode(string? value) =>
     string.IsNullOrWhiteSpace(value) ? "DE" : value.Trim().ToUpperInvariant();
 
 static string NormalizeCityName(string value) => value.Trim().ToUpperInvariant();
+
+static string NormalizeEmail(string value) => value.Trim().ToUpperInvariant();
+
+static string? NormalizeEmailOrNull(string? value) =>
+    string.IsNullOrWhiteSpace(value) ? null : NormalizeEmail(value);
