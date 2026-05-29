@@ -62,6 +62,7 @@ export default function UserDataPanel({
 }) {
   const [stations, setStations] = useState([]);
   const [shares, setShares] = useState({ outgoing: [], incoming: [] });
+  const [accessOverview, setAccessOverview] = useState(null);
   const [shareForm, setShareForm] = useState(emptyShareForm);
   const [favorites, setFavorites] = useState([]);
   const [favoriteForm, setFavoriteForm] = useState(emptyFavorite);
@@ -100,10 +101,15 @@ export default function UserDataPanel({
     setFavorites(Array.isArray(data) ? data : []);
   }, [authFetchJson]);
 
+  const loadAccessOverview = useCallback(async () => {
+    const data = await authFetchJson(buildApiUrl("/access"));
+    setAccessOverview(data || null);
+  }, [authFetchJson]);
+
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([loadStations(), loadFavorites(), loadShares()]).then(() => {
+    Promise.allSettled([loadStations(), loadFavorites(), loadShares(), loadAccessOverview()]).then(() => {
       if (cancelled) {
         return;
       }
@@ -114,7 +120,7 @@ export default function UserDataPanel({
     return () => {
       cancelled = true;
     };
-  }, [loadStations, loadFavorites, loadShares, stationsRefreshKey]);
+  }, [loadStations, loadFavorites, loadShares, loadAccessOverview, stationsRefreshKey]);
 
   const saveCurrentFavorite = async () => {
     if (!currentWeather?.city) {
@@ -424,6 +430,31 @@ export default function UserDataPanel({
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+
+        <div className="saved-panel access-panel">
+          <div className="panel-title">
+            <h3>Region und Rollen</h3>
+          </div>
+
+          <div className="access-grid">
+            <article>
+              <small>Aktiver Zugriff</small>
+              <strong>{accessOverview?.regionScope || "Deutschland"}</strong>
+            </article>
+            <article>
+              <small>Erlaubte Regionen</small>
+              <strong>{accessOverview?.allowedRegions?.length ? accessOverview.allowedRegions.join(", ") : "Deutschland"}</strong>
+            </article>
+            <article>
+              <small>Auth0 Permissions</small>
+              <strong>{accessOverview?.permissions?.length ? accessOverview.permissions.join(", ") : "Standardzugriff Deutschland"}</strong>
+            </article>
+            <article>
+              <small>Auth0 Rollen</small>
+              <strong>{accessOverview?.roles?.length ? accessOverview.roles.join(", ") : "Keine Rolle im Token"}</strong>
+            </article>
           </div>
         </div>
       </div>

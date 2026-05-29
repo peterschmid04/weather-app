@@ -480,6 +480,10 @@ Wetterstationen teilen:
 - `POST /station-shares/{shareId}/accept`
 - `DELETE /station-shares/{shareId}`
 
+Rollen und Regionen:
+
+- `GET /access`
+
 Alle fachlichen Endpunkte sind durch Auth0 JWT geschützt. Ohne gültigen Bearer Token antwortet das Backend mit `401`.
 
 ## Datenbankmodell
@@ -565,16 +569,19 @@ Offene Erweiterungsideen:
 - Rollen wie `station_admin`, wenn Stationen später gruppenweise verwaltet werden sollen.
 - Benachrichtigungen per E-Mail.
 
-## Offenes Konzept: Rollenbasierte Admin-/Region-Ansicht
+## Rollenbasierte Region-Ansicht
 
-Die Region-Freigabe über Auth0 Permissions ist umgesetzt. Eine separate Admin-Oberfläche ist als Extra-Feature möglich, aber noch nicht Teil des Prototyps.
+Die Region-Freigabe über Auth0 Permissions ist umgesetzt. Das Backend prüft die Berechtigung serverseitig in `RegionAuthorization`, und das Frontend zeigt im Bereich `Region und Rollen`, welche Permissions und Rollen der aktuelle Auth0-Token enthält.
 
-Mögliche Admin-/Region-Ansicht:
+Umgesetzt:
 
-- Admin sieht Nutzerrollen und Region-Freigaben.
-- Admin kann prüfen, ob Nutzer `region:all`, `region:eu` oder nur Deutschland-Zugriff haben.
-- Frontend könnte je nach Permission Hinweise oder Filter anzeigen.
-- Backend bleibt die entscheidende Sicherheitsinstanz, weil es `RegionAuthorization` serverseitig prüft.
+- `GET /access` gibt Name, E-Mail, Auth0-Permissions, Auth0-Rollen und den aktiven Region-Zugriff zurück.
+- Ohne Permission gilt Standardzugriff Deutschland.
+- `region:eu` erlaubt europäische Länder.
+- `region:all` erlaubt alle Länder.
+- Das Frontend zeigt den aktiven Zugriff und die Rollen transparent an.
+
+Wichtig: Rollen und Permissions werden weiterhin im Auth0 Dashboard verwaltet. Die App zeigt und nutzt diese Werte, speichert aber keine eigene Rollenverwaltung.
 
 ## Frontend-Funktionen
 
@@ -591,6 +598,7 @@ Mögliche Admin-/Region-Ansicht:
 - Wetterstationen per E-Mail an andere Auth0-Nutzer freigeben.
 - Geteilte Wetterstationen annehmen oder löschen.
 - Messwerte für freigegebene Stationen eintragen, wenn die Freigabe das erlaubt.
+- Region- und Rollenübersicht aus dem Auth0-Token anzeigen.
 - Farbthemes, die pro Nutzer in PostgreSQL gespeichert werden.
 - Deutsche Oberfläche.
 - Fehleranzeigen für 401, 403, 404, 409, 429 und 500.
