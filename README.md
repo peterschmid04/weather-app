@@ -67,6 +67,7 @@ Zusaetzliche Dateidokumentation liegt flach an passenden Stellen. Es gibt keine
 tief verschachtelten Doku-Unterordner:
 
 - `PROJECT_FILES.md`: Root-Dateien, Laufzeitfluss, Secrets und lokale Pfade.
+- `ARCHITECTURE.md`: Ausfuehrliches Mermaid-Architekturdiagramm.
 - `docker/DOCKER_FILES.md`: Docker Compose, PostgreSQL-Init, pgAdmin und ngrok.
 - `weather-app/FRONTEND_FILES.md`: React-Dateien, Komponenten, Utils und Datenfluss.
 - `weatherAPIOAuth/BACKEND_FILES.md`: .NET Solution, Backend-Projekt und Testprojekt.
@@ -700,16 +701,23 @@ Für den aktuellen Prototyp ist kein zusätzliches React-Routing nötig. Die App
 
 ## Architektur
 
+Die ausfuehrliche Beschreibung steht in `ARCHITECTURE.md`.
+
 ```mermaid
 flowchart LR
-  Browser["Browser / React Frontend"] --> Auth0["Auth0 Universal Login"]
-  Browser --> API["ASP.NET Core Backend"]
-  API --> Postgres["PostgreSQL"]
-  API --> OWM["OpenWeatherMap API"]
-  PgAdmin["pgAdmin"] --> Postgres
-  Ngrok["ngrok optional"] --> Browser
-  Auth0 --> Browser
-  Browser -->|"Authorization: Bearer access token"| API
+  User["Nutzer Browser"] -->|"localhost:3000<br/>oder ngrok"| Frontend["frontend<br/>React SPA"]
+  Frontend -->|"Login / Registrierung"| Auth0["Auth0<br/>Universal Login"]
+  Auth0 -->|"Access Token"| Frontend
+  Frontend -->|"relative API Requests<br/>Bearer Token"| Backend["backend<br/>ASP.NET Core Minimal API"]
+  Backend -->|"JWT validieren"| Auth0
+  Backend -->|"serverseitiger API Key"| OWM["OpenWeatherMap API"]
+  Backend -->|"EF Core / Npgsql"| DB["PostgreSQL<br/>weather_app"]
+  PgAdmin["pgAdmin"] -->|"DB ansehen / bearbeiten"| DB
+  Backend --> Stationen["Wetterstationen<br/>Messwerte<br/>Freigaben"]
+  Backend --> NutzerDaten["Verlauf<br/>Favoriten<br/>Themes"]
+  Env["lokale .env"] -.-> Frontend
+  Env -.-> Backend
+  Env -.-> DB
 ```
 
 ## Tests und Checks

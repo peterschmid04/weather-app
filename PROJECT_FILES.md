@@ -9,6 +9,7 @@ flach an den passenden Stellen:
 - `weatherAPIOAuth/BACKEND_FILES.md`
 - `weatherAPIOAuth/weatherAPI/API_FILES.md`
 - `weatherAPIOAuth/weatherAPI.Test/TEST_FILES.md`
+- `ARCHITECTURE.md`
 
 Es gibt bewusst keine tief verschachtelten Dokumentationsordner. Alle neuen
 Dokumentationsdateien liegen maximal zwei Projekt-Ebenen tief.
@@ -20,6 +21,12 @@ Dokumentationsdateien liegen maximal zwei Projekt-Ebenen tief.
 Die zentrale Anleitung fuer das Projekt. Sie beschreibt den Zweck der App,
 den Docker-Start, Auth0, OpenWeatherMap, PostgreSQL, pgAdmin, ngrok, Logs und
 Testbefehle. Sie ist die erste Datei, die man nach einem frischen Clone liest.
+
+`ARCHITECTURE.md`
+
+Ausfuehrliches Mermaid-Architekturdiagramm fuer Browser, Auth0, Frontend,
+Backend, PostgreSQL, pgAdmin, OpenWeatherMap, ngrok, `.env`, Docker-Volumes und
+Backend-Endpunktgruppen.
 
 `.env.example`
 
