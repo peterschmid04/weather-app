@@ -105,8 +105,13 @@ $auth0GitHub = "github"
 $openWeatherKey = Read-SecretValue "OPENWEATHERMAP_API_KEY"
 $logs = "false"
 $logDirectory = "/workspace/logs"
-$ngrokAuthtoken = ""
-$ngrokUrl = "https://relaxed-yak-pleasantly.ngrok-free.app"
+$composeProfiles = ""
+$ngrokAuthtoken = Read-SecretValue "NGROK_AUTHTOKEN optional, press Enter to skip" $false
+$ngrokUrl = ""
+if (-not [string]::IsNullOrWhiteSpace($ngrokAuthtoken)) {
+    $ngrokUrl = Read-PlainValue "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app"
+    $composeProfiles = "ngrok"
+}
 
 $values = [ordered]@{
     POSTGRES_DB = $postgresDb
@@ -126,6 +131,7 @@ $values = [ordered]@{
     OPENWEATHERMAP_API_KEY = $openWeatherKey
     LOGS = $logs
     LOG_DIRECTORY = $logDirectory
+    COMPOSE_PROFILES = $composeProfiles
     NGROK_AUTHTOKEN = $ngrokAuthtoken
     NGROK_URL = $ngrokUrl
 }
@@ -159,6 +165,7 @@ $envLines = @(
     "LOGS=$logs",
     "LOG_DIRECTORY=$logDirectory",
     "",
+    "COMPOSE_PROFILES=$composeProfiles",
     "NGROK_AUTHTOKEN=$ngrokAuthtoken",
     "NGROK_URL=$ngrokUrl"
 )

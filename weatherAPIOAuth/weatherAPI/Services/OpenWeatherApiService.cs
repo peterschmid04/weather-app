@@ -36,10 +36,10 @@ public class OpenWeatherApiService : IOpenWeatherApiService
     
     public async Task<OpenWeatherResponse?> GetWeather(string city)
     {
-        var apiKey = _configuration["OpenWeatherMap:ApiKey"];    
+        var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();  
         var weatherQuery = BuildWeatherQuery(city);
-        var apiUrl = $"https://api.openweathermap.org/data/2.5/weather?q={Uri.EscapeDataString(weatherQuery)}&appid={Uri.EscapeDataString(apiKey ?? string.Empty)}";
+        var apiUrl = $"https://api.openweathermap.org/data/2.5/weather?q={Uri.EscapeDataString(weatherQuery)}&appid={Uri.EscapeDataString(apiKey)}";
         var response = await client.GetAsync(apiUrl);
     
         if (!response.IsSuccessStatusCode) return null;
@@ -83,10 +83,10 @@ public class OpenWeatherApiService : IOpenWeatherApiService
     
     public async Task<double?> GetAirQuality(double lat, double lon)
     {
-        var apiKey = _configuration["OpenWeatherMap:ApiKey"];
+        var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();
         var apiUrl =
-            $"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={apiKey}&units=metric";
+            $"https://api.openweathermap.org/data/2.5/air_pollution?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&appid={Uri.EscapeDataString(apiKey)}&units=metric";
         var response = await client.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode) return null;
@@ -99,10 +99,10 @@ public class OpenWeatherApiService : IOpenWeatherApiService
     
     public async Task<ForecastApiResponse?> GetForecast(double lat, double lon)
     {
-        var apiKey = _configuration["OpenWeatherMap:ApiKey"];
+        var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();
         var apiUrl =
-            $"https://api.openweathermap.org/data/2.5/forecast/daily?lat={lat}&lon={lon}&cnt={7}&appid={apiKey}&units=metric";
+            $"https://api.openweathermap.org/data/2.5/forecast/daily?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&cnt={7}&appid={Uri.EscapeDataString(apiKey)}&units=metric";
         var response = await client.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode) return null;
@@ -113,10 +113,10 @@ public class OpenWeatherApiService : IOpenWeatherApiService
     
     public async Task<double?> GetUvIndex(double lat, double lon)
     {
-        var apiKey = _configuration["OpenWeatherMap:ApiKey"];
+        var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();
         var apiUrl =
-            $"https://api.openweathermap.org/data/2.5/uvi?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&appid={apiKey}";
+            $"https://api.openweathermap.org/data/2.5/uvi?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&appid={Uri.EscapeDataString(apiKey)}";
         var response = await client.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode) return null;
@@ -125,5 +125,16 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         var uvValue = jsonDoc.RootElement.GetProperty("value").GetDouble();
 
         return uvValue;
+    }
+
+    private string GetRequiredApiKey()
+    {
+        var apiKey = _configuration["OpenWeatherMap:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new InvalidOperationException("OPENWEATHERMAP_API_KEY is missing. Add it to the local .env file before requesting weather data.");
+        }
+
+        return apiKey.Trim();
     }
 }

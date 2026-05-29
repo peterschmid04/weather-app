@@ -35,6 +35,13 @@ if (detailedLogsEnabled)
 var databaseConnectionString = builder.Configuration.GetConnectionString("WeatherDatabase")
     ?? throw new InvalidOperationException("Connection string 'WeatherDatabase' is missing. Configure ConnectionStrings__WeatherDatabase.");
 
+var openWeatherApiKey = builder.Configuration["OpenWeatherMap:ApiKey"];
+if (string.IsNullOrWhiteSpace(openWeatherApiKey) ||
+    openWeatherApiKey.Contains("your-openweathermap", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException("OPENWEATHERMAP_API_KEY is missing. Add a real OpenWeatherMap API key to the local .env file before starting the backend.");
+}
+
 builder.Services.AddDbContext<WeatherDbContext>(options =>
     options.UseNpgsql(databaseConnectionString, npgsqlOptions =>
         npgsqlOptions.EnableRetryOnFailure()));
