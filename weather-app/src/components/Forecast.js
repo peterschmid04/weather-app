@@ -2,7 +2,7 @@ import "./Forecast.css";
 import React from "react";
 import { translateWeatherDescription, translateWeekday } from "../utils/localizationUtils";
 
-const convertTemperature = (temp, isCelsius) => isCelsius ? temp : (temp * 9 / 5 + 32).toFixed(1);
+const convertTemperature = (temp, isCelsius) => isCelsius ? temp : Number((temp * 9 / 5 + 32).toFixed(1));
 
 export default function Forecast({ forecastData, isCelsius }) {
   if (!forecastData || forecastData.length === 0) {

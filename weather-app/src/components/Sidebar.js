@@ -3,7 +3,7 @@ import "./Sidebar.css";
 import { formatCityLocation, getCitySuggestions, translateWeatherDescription } from "../utils/localizationUtils";
 import { buildApiUrl } from "../utils/apiUtils";
 
-const convertTemperature = (temp, isCelsius) => isCelsius ? temp : ((temp * 9 / 5) + 32).toFixed(1);
+const convertTemperature = (temp, isCelsius) => isCelsius ? temp : Number(((temp * 9 / 5) + 32).toFixed(1));
 
 export default function Sidebar({
   city,

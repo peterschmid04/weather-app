@@ -25,7 +25,7 @@ namespace weatherAPI.Services
                 Country = openWeather.Sys.Country,
                 TemperatureC = Math.Round(openWeather.Main.Temp - 273.15, 1),
                 Humidity = openWeather.Main.Humidity,
-                VisibilityKm = openWeather.VisibilityKm / 1000.0,
+                VisibilityKm = openWeather.VisibilityMeters / 1000.0,
                 Description = openWeather.Weather[0].Description,
                 Icon = openWeather.Weather[0].Icon,
                 WeatherId = openWeather.Weather[0].Id,
