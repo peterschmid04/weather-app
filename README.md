@@ -61,6 +61,18 @@ Backend:
 
 Hinweis zu Kommentaren: JSON-Dateien wie `package.json`, `package-lock.json`, `manifest.json` und `servers.json` dÃ¼rfen keine Kommentare enthalten. Ihre Aufgabe ist deshalb hier dokumentiert, statt die Dateien ungÃ¼ltig zu machen.
 
+## Weitere Dokumentation
+
+Zusaetzliche Dateidokumentation liegt flach an passenden Stellen. Es gibt keine
+tief verschachtelten Doku-Unterordner:
+
+- `PROJECT_FILES.md`: Root-Dateien, Laufzeitfluss, Secrets und lokale Pfade.
+- `docker/DOCKER_FILES.md`: Docker Compose, PostgreSQL-Init, pgAdmin und ngrok.
+- `weather-app/FRONTEND_FILES.md`: React-Dateien, Komponenten, Utils und Datenfluss.
+- `weatherAPIOAuth/BACKEND_FILES.md`: .NET Solution, Backend-Projekt und Testprojekt.
+- `weatherAPIOAuth/weatherAPI/API_FILES.md`: API-Dateien, Endpunkte, Modelle, Services und Migrationen.
+- `weatherAPIOAuth/weatherAPI.Test/TEST_FILES.md`: Testprojekt und aktuelle Teststrategie.
+
 ## Voraussetzungen
 
 - Docker Desktop oder Docker Engine mit Docker Compose.
