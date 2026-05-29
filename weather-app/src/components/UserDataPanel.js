@@ -46,23 +46,31 @@ export default function UserDataPanel({
   authFetchJson,
   currentWeather,
   currentCountry,
-  historyRefreshKey,
+  stationsRefreshKey,
+  selectedStationId,
+  onSelectedStationChange,
   onSelectCity,
   themeName,
   onThemeChange,
-  onHistoryChanged,
   onFavoritesChanged,
 }) {
-  const [history, setHistory] = useState([]);
+  const [stations, setStations] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [favoriteForm, setFavoriteForm] = useState(emptyFavorite);
   const [editingFavoriteId, setEditingFavoriteId] = useState("");
   const [message, setMessage] = useState("");
 
-  const loadHistory = useCallback(async () => {
-    const data = await authFetchJson(buildApiUrl("/history/"));
-    setHistory(Array.isArray(data) ? data.slice(0, 3) : []);
-  }, [authFetchJson]);
+  const loadStations = useCallback(async () => {
+    const data = await authFetchJson(buildApiUrl("/stations/"));
+    const nextStations = Array.isArray(data) ? data : [];
+    setStations(nextStations);
+
+    if (selectedStationId && nextStations.some((station) => station.id === selectedStationId)) {
+      return;
+    }
+
+    onSelectedStationChange?.(nextStations[0]?.id || "");
+  }, [authFetchJson, onSelectedStationChange, selectedStationId]);
 
   const loadFavorites = useCallback(async () => {
     const data = await authFetchJson(buildApiUrl("/favorites/"));
@@ -72,7 +80,7 @@ export default function UserDataPanel({
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([loadHistory(), loadFavorites()]).then(() => {
+    Promise.allSettled([loadStations(), loadFavorites()]).then(() => {
       if (cancelled) {
         return;
       }
@@ -83,7 +91,7 @@ export default function UserDataPanel({
     return () => {
       cancelled = true;
     };
-  }, [loadHistory, loadFavorites, historyRefreshKey]);
+  }, [loadStations, loadFavorites, stationsRefreshKey]);
 
   const saveCurrentFavorite = async () => {
     if (!currentWeather?.city) {
@@ -176,23 +184,6 @@ export default function UserDataPanel({
     }
   };
 
-  const deleteHistory = async (historyId) => {
-    const previousHistory = history;
-    setHistory((current) => current.filter((item) => item.id !== historyId));
-
-    try {
-      await authFetchJson(buildApiUrl(`/history/${historyId}`), { method: "DELETE" });
-      await loadHistory().catch(() => {});
-      onHistoryChanged?.();
-      setMessage("Verlaufseintrag gelöscht.");
-    } catch (error) {
-      if (error?.status !== 404) {
-        setHistory(previousHistory);
-      }
-      setMessage(getFriendlyErrorMessage(error, "Verlaufseintrag konnte nicht gelöscht werden."));
-    }
-  };
-
   const changeTheme = async (nextTheme) => {
     if (nextTheme === themeName) {
       return;
@@ -218,11 +209,17 @@ export default function UserDataPanel({
     onSelectCity(cityName);
   };
 
+  const selectStation = (stationId) => {
+    onSelectedStationChange?.(stationId);
+    const station = stations.find((item) => item.id === stationId);
+    setMessage(station ? `Aktive Wetterstation: ${station.name}` : "");
+  };
+
   return (
     <section className="user-data">
       <div className="user-data-header">
         <div>
-          <h2>Verlauf und Favoriten</h2>
+          <h2>Stationen und Favoriten</h2>
         </div>
         {message && <span>{message}</span>}
       </div>
@@ -243,19 +240,21 @@ export default function UserDataPanel({
       <div className="user-data-grid">
         <div className="saved-panel">
           <div className="panel-title">
-            <h3>Suchverlauf</h3>
+            <h3>Aktive Wetterstation</h3>
           </div>
-          <div className="saved-list">
-            {history.length === 0 && <p className="empty">Noch keine Suche gespeichert.</p>}
-            {history.map((item) => (
-              <article key={item.id}>
-                <button type="button" onClick={() => loadCity(item.queryText || item.cityName)}>
-                  {formatCityLocation(item.queryText || item.cityName, item.countryCode)}
+          <div className="saved-list station-short-list">
+            {stations.length === 0 && <p className="empty">Noch keine Wetterstation gespeichert.</p>}
+            {stations.map((station) => (
+              <article key={station.id} className={station.id === selectedStationId ? "active" : ""}>
+                <button type="button" onClick={() => selectStation(station.id)}>
+                  {station.name}
                 </button>
-                <small>{new Date(item.searchedAtUtc).toLocaleString("de-DE")}</small>
-                <button type="button" className="quiet" onClick={() => deleteHistory(item.id)}>
-                  Löschen
-                </button>
+                <small>{formatCityLocation(station.cityName, station.countryCode)}</small>
+                {station.latestMeasurement && (
+                  <small>
+                    Letzter Messwert: {station.latestMeasurement.temperatureC ?? "-"} °C
+                  </small>
+                )}
               </article>
             ))}
           </div>

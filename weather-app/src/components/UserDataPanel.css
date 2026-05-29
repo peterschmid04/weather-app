@@ -117,8 +117,17 @@
   padding: 8px;
 }
 
+.saved-list article.active {
+  border-color: var(--accent);
+  background: var(--control);
+}
+
 .saved-list article > small {
   grid-column: 1;
+}
+
+.station-short-list article {
+  grid-template-columns: 1fr;
 }
 
 .saved-list .quiet,

@@ -252,6 +252,31 @@ https://dev-021n1l5l5ftyrnjp.<region>.auth0.com/login/callback
 
 Das Projekt nutzt im Frontend die Auth0 React SDK. Diese nutzt für SPAs den Authorization Code Flow mit PKCE. Das Backend validiert danach das JWT als `Authorization: Bearer <token>` mit ASP.NET Core JWT Bearer Authentication.
 
+### 5. Auth0 Rollen und Permissions
+
+Für die aktuelle Anwendung ist Auth0 für Identität, Login und globale Berechtigungen zuständig. Das Backend liest die Auth0-Permissions aus dem JWT und prüft sie in `RegionAuthorization`.
+
+Geplantes Rollenmodell für die Präsentation:
+
+- `Alle`: bekommt die Permission `region:all` und darf Wetterdaten für alle Länder abrufen.
+- `Europa`: bekommt die Permission `region:eu` und darf Wetterdaten für europäische Länder abrufen.
+- `Deutschland`: Standardzugriff ohne zusätzliche Permission; erlaubt ist nur `DE`.
+
+Wichtig im Auth0 Dashboard:
+
+1. Bei `Applications -> APIs -> Weather API` RBAC aktivieren.
+2. `Add Permissions in the Access Token` aktivieren.
+3. Permissions in der API anlegen, z. B. `region:all` und `region:eu`.
+4. Rollen anlegen und die Permissions zuweisen.
+5. Nutzer den Rollen zuordnen.
+
+Codebezug:
+
+- [weatherAPIOAuth/weatherAPI/Security/RegionAuthorization.cs](weatherAPIOAuth/weatherAPI/Security/RegionAuthorization.cs) liest die JWT-Claims `permissions`.
+- `region:all` erlaubt alle Länder.
+- `region:eu` erlaubt Länder aus der Europa-Liste.
+- Ohne Permission ist Deutschland (`DE`) als Standardzugriff erlaubt.
+
 ## OpenWeatherMap Setup
 
 1. Konto bei OpenWeatherMap erstellen: https://openweathermap.org/api
@@ -477,6 +502,44 @@ Normalisierung:
 
 Dadurch werden Wiederholungen reduziert und die Datenstruktur erfüllt die Anforderungen der ersten drei Normalformen für den Projektumfang.
 
+## Offenes Konzept: Wetterstationen teilen
+
+Das Teilen von Wetterstationen ist als Erweiterung geplant, aber noch nicht produktiv umgesetzt. Auth0 bleibt dabei für Identität, Login und globale Rollen zuständig. Die App-Datenbank würde nur speichern, welcher Auth0-Nutzer Zugriff auf welche Wetterstation hat.
+
+Geplantes Datenmodell:
+
+- Neue Tabelle `WeatherStationShares`.
+- `WeatherStationShares.Id` als Primärschlüssel.
+- `WeatherStationShares.WeatherStationId` als Fremdschlüssel auf `WeatherStations`.
+- `WeatherStationShares.OwnerUserProfileId` als Besitzer der Station.
+- `WeatherStationShares.SharedWithUserProfileId` als berechtigter Nutzer.
+- `WeatherStationShares.Permission` z. B. `read`, `write_measurements`, `manage`.
+- `WeatherStationShares.CreatedAtUtc`.
+- Optional `ExpiresAtUtc`, falls eine Freigabe zeitlich begrenzt werden soll.
+
+Geplanter Workflow:
+
+1. Nutzer A besitzt eine Wetterstation.
+2. Nutzer A gibt die Station für Nutzer B frei.
+3. Nutzer B darf je nach Freigabe Messwerte eintragen, aber die Station nicht besitzen.
+4. Die Freigabe kann für Urlaubsvertretung, Projektvertretung, Wartung, Teamarbeit oder Lehr-/Demo-Szenarien genutzt werden.
+5. Nutzer A kann die Freigabe später wieder entfernen.
+
+Auth0-Nutzer finden:
+
+- Einfacher Ansatz: Nutzer B wird über E-Mail-Adresse eingeladen. Die App speichert nach dem ersten Login die Auth0 User-ID in `UserProfiles`.
+- Erweiterter Ansatz: Auth0 Organizations und Einladungen nutzen, wenn Teams oder Gruppen sauber in Auth0 verwaltet werden sollen.
+- Alternative: Einladung in der App erzeugen und erst beim Login von Nutzer B an dessen Auth0 User-ID binden.
+
+Geplante Endpunkte:
+
+- `GET /stations/{stationId}/shares`
+- `POST /stations/{stationId}/shares`
+- `PUT /stations/{stationId}/shares/{shareId}`
+- `DELETE /stations/{stationId}/shares/{shareId}`
+
+Diese Erweiterung wäre ein gutes Extra-Feature, bleibt aber aktuell bewusst offen, damit der Prototyp stabil bleibt.
+
 ## Frontend-Funktionen
 
 - Auth0 Login und Logout.
@@ -492,6 +555,10 @@ Dadurch werden Wiederholungen reduziert und die Datenstruktur erfüllt die Anfor
 - Farbthemes, die pro Nutzer in PostgreSQL gespeichert werden.
 - Deutsche Oberfläche.
 - Fehleranzeigen für 401, 403, 404, 409, 429 und 500.
+
+## Navigation und Routing
+
+Für den aktuellen Prototyp ist kein zusätzliches React-Routing nötig. Die App ist ein authentifiziertes Single-Page-Dashboard: Wetteranzeige, Favoriten, aktive Wetterstation, Messwerte und Themes liegen bewusst auf einer Seite, weil die Prüfungsanforderung die Kommunikation zwischen Frontend, Backend und Datenbank zeigen soll. Auth0 übernimmt den externen Login-/Logout-Redirect; innerhalb der App reichen Panels und Komponenten statt eigener Routen.
 
 ## Architektur
 
@@ -565,6 +632,9 @@ Der Projektordner bleibt dadurch sauber und OneDrive bekommt keine riesigen gene
 - Auth0 Application Settings: https://auth0.com/docs/get-started/applications/application-settings
 - Auth0 React SDK: https://auth0.com/docs/libraries/auth0-react
 - Auth0 Authorization Code Flow with PKCE: https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce
+- Auth0 RBAC for APIs: https://auth0.com/docs/manage-users/access-control/configure-core-rbac/enable-role-based-access-control-for-apis
+- Auth0 Organizations: https://auth0.com/docs/organizations
+- Auth0 Organization Invitations: https://auth0.com/docs/organizations/invite-members
 - OpenWeatherMap API: https://openweathermap.org/api
 - ngrok Docker: https://ngrok.com/docs/using-ngrok-with/docker/
 - ngrok Docker Compose: https://ngrok.com/docs/using-ngrok-with/docker/compose
