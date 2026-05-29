@@ -12,6 +12,8 @@ import { formatCityLocation } from "./utils/localizationUtils";
 import { buildApiUrl } from "./utils/apiUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
+const DEFAULT_CITY = "Schwenningen";
+
 class HttpError extends Error {
   constructor(status, message, body) {
     super(message);
@@ -22,8 +24,8 @@ class HttpError extends Error {
 }
 
 export default function WeatherApp() {
-  const [inputCity, setInputCity] = useState("Loßburg");
-  const [city, setCity] = useState("Loßburg");
+  const [inputCity, setInputCity] = useState(DEFAULT_CITY);
+  const [city, setCity] = useState(DEFAULT_CITY);
   const [weather, setWeather] = useState(null);
   const [country, setCountry] = useState("");
   const [highlights, setHighlights] = useState([]);
@@ -58,7 +60,7 @@ export default function WeatherApp() {
   };
 
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
-  const [currentDay] = useState(getCurrentDay());
+  const [currentDay, setCurrentDay] = useState(getCurrentDay());
 
   const authFetchJson = useCallback(
     async (url, options = {}) => {
@@ -218,6 +220,7 @@ export default function WeatherApp() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(getCurrentTime());
+      setCurrentDay(getCurrentDay());
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -253,7 +256,7 @@ export default function WeatherApp() {
       return;
     }
 
-    fetchWeatherData("Loßburg");
+    fetchWeatherData(DEFAULT_CITY);
   }, [isAuthenticated, fetchWeatherData]);
 
   useEffect(() => {

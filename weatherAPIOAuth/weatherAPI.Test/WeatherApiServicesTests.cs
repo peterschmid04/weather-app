@@ -45,6 +45,12 @@ public class WeatherApiServicesTests
         _forecastService = new ForecastService(_apiMock.Object);
     }
 
+    [TestInitialize]
+    public void TestInit()
+    {
+        _apiMock.Invocations.Clear();
+    }
+
     [TestMethod]
     public async Task AirQualityServiceTest()
     {
@@ -88,12 +94,12 @@ public class WeatherApiServicesTests
         result.Should().HaveCount(1);
 
 
-        result[0].Day.Should().Be("Thursday");
+        result[0].Day.Should().Be("Freitag");
         result[0].Description.Should().Be("overcast clouds");
         result[0].Icon.Should().Be("04d");
         result[0].Id.Should().Be(804);
-        result[0].TempMin.Should().Be(11.48);
-        result[0].TempMax.Should().Be(24.49);
+        result[0].TempMin.Should().Be(11.5);
+        result[0].TempMax.Should().Be(24.5);
 
         _apiMock.Verify(api => api.GetForecast(validLat, validLon), Times.Once);
         _apiMock.VerifyNoOtherCalls();
@@ -121,22 +127,24 @@ public class WeatherApiServicesTests
     {
         var expectedForecast = new ForecastApiResponse
         {
+            City = new ForecastCity { Timezone = 0 },
             List =
             [
                 new ForecastDay
                 {
                     Dt = new DateTimeOffset(2025, 8, 21, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
-                    Temp = new Temperature { Min = 10.0, Max = 20.0 },
+                    Main = new ForecastMain { Temp = 15.0, TempMin = 10.0, TempMax = 20.0 },
                     Weather = [new WeatherInfo { Id = 800, Description = "clear sky", Icon = "01d" }]
                 },
 
                 new ForecastDay
                 {
-                    Dt = new DateTimeOffset(2025, 8, 21, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
-                    Temp = new Temperature
+                    Dt = new DateTimeOffset(2025, 8, 22, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    Main = new ForecastMain
                     {
-                        Min = expectedTempMin,
-                        Max = expectedTempMax
+                        Temp = 18.0,
+                        TempMin = expectedTempMin,
+                        TempMax = expectedTempMax
                     },
                     Weather =
                     [
@@ -164,7 +172,7 @@ public class WeatherApiServicesTests
             Wind = new Wind { Speed = 4.12 },
             Timezone = 3600,
             Sys = new Sys { Country = "GB", Sunrise = 1691374800, Sunset = 1691427600 },
-            VisibilityKm = 10000
+            VisibilityMeters = 10000
         };
         return expectedWeather;
     }

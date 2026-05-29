@@ -292,6 +292,13 @@ Der Key wird nur an das Backend übergeben. Das Frontend bekommt den Key nicht d
 
 Wenn `OPENWEATHERMAP_API_KEY` fehlt oder noch auf einem Platzhalter steht, startet das Backend absichtlich nicht. So merkt man die Fehlkonfiguration sofort beim Start und nicht erst später bei der ersten Wetterabfrage.
 
+Genutzte OpenWeatherMap-Endpunkte:
+
+- Aktuelles Wetter: `/data/2.5/weather`.
+- Luftqualität: `/data/2.5/air_pollution`.
+- Forecast: `/data/2.5/forecast`, also die kostenlose 5-Tage/3-Stunden-Vorhersage. Das Backend fasst daraus Tageskarten zusammen.
+- UV-Index: `/data/3.0/onecall`, Feld `current.uvi`. Dafür muss One Call API 3.0 im OpenWeatherMap-Konto aktiviert sein. Wenn der Key keinen One-Call-Zugriff hat, kann nur der UV-Index fehlen; Wetter, Forecast und Luftqualität laufen weiterhin über die normalen 2.5-Endpunkte.
+
 ## Docker Compose Services
 
 Docker Compose startet:
@@ -689,6 +696,9 @@ Der Projektordner bleibt dadurch sauber und OneDrive bekommt keine riesigen gene
 - Auth0 Organizations: https://auth0.com/docs/organizations
 - Auth0 Organization Invitations: https://auth0.com/docs/organizations/invite-members
 - OpenWeatherMap API: https://openweathermap.org/api
+- OpenWeatherMap Current Weather API: https://openweathermap.org/current
+- OpenWeatherMap 5 Day / 3 Hour Forecast API: https://openweathermap.org/forecast5
+- OpenWeatherMap One Call API 3.0: https://openweathermap.org/api/one-call-3
 - ngrok Docker: https://ngrok.com/docs/using-ngrok-with/docker/
 - ngrok Docker Compose: https://ngrok.com/docs/using-ngrok-with/docker/compose
 - ngrok HTTP Endpoints: https://ngrok.com/docs/http

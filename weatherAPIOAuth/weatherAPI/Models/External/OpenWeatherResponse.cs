@@ -11,7 +11,7 @@ public class OpenWeatherResponse
     [JsonPropertyName("main")]
     public required Main Main { get; set; }
     [JsonPropertyName("visibility")]
-    public double VisibilityKm { get; set; }
+    public double VisibilityMeters { get; set; }
     [JsonPropertyName("wind")]
     public required Wind Wind { get; set; }
     [JsonPropertyName("sys")]

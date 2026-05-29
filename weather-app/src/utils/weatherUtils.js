@@ -12,7 +12,6 @@ import iconSnow from "../images/icons/snow.svg";
 import iconThunderstorm from "../images/icons/thunderstorm.svg";
 import iconClear from "../images/icons/clear.svg";
 import iconFog from "../images/icons/fog.svg";
-import iconClouds from "../images/icons/cloudy.svg";
 
 // Returns main weather image based on weather condition id
 export const getWeatherImage = (weatherId) => {
@@ -42,7 +41,7 @@ export const getWeatherIcons = (weatherId) => {
         case weatherId >= 200 && weatherId < 300:
             return iconThunderstorm; 
         case weatherId >= 300 && weatherId < 400:
-            return iconClouds;
+            return iconRain;
         case weatherId >= 500 && weatherId < 600:
             return iconRain;
         case weatherId >= 600 && weatherId < 700:
@@ -54,6 +53,6 @@ export const getWeatherIcons = (weatherId) => {
         case weatherId >= 801 && weatherId < 810:
             return iconCloudy; 
         default:
-            return iconClouds;
+            return iconCloudy;
     }
 };

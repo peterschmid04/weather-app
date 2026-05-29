@@ -102,7 +102,7 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();
         var apiUrl =
-            $"https://api.openweathermap.org/data/2.5/forecast/daily?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&cnt={7}&appid={Uri.EscapeDataString(apiKey)}&units=metric";
+            $"https://api.openweathermap.org/data/2.5/forecast?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&appid={Uri.EscapeDataString(apiKey)}&units=metric";
         var response = await client.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode) return null;
@@ -116,13 +116,13 @@ public class OpenWeatherApiService : IOpenWeatherApiService
         var apiKey = GetRequiredApiKey();
         var client = _httpClientFactory.CreateClient();
         var apiUrl =
-            $"https://api.openweathermap.org/data/2.5/uvi?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&appid={Uri.EscapeDataString(apiKey)}";
+            $"https://api.openweathermap.org/data/3.0/onecall?lat={lat.ToString("F2", CultureInfo.InvariantCulture)}&lon={lon.ToString("F2", CultureInfo.InvariantCulture)}&exclude=minutely,hourly,daily,alerts&appid={Uri.EscapeDataString(apiKey)}&units=metric";
         var response = await client.GetAsync(apiUrl);
 
         if (!response.IsSuccessStatusCode) return null;
         var jsonString = await response.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(jsonString);
-        var uvValue = jsonDoc.RootElement.GetProperty("value").GetDouble();
+        var uvValue = jsonDoc.RootElement.GetProperty("current").GetProperty("uvi").GetDouble();
 
         return uvValue;
     }
