@@ -13,24 +13,7 @@ import { buildApiUrl } from "./utils/apiUtils";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const DEFAULT_CITY = "Schwenningen";
-const FORECAST_CARD_COUNT = 6;
-const WEEKDAYS_DE = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
-const WEEKDAY_INDEX = {
-  sonntag: 0,
-  sunday: 0,
-  montag: 1,
-  monday: 1,
-  dienstag: 2,
-  tuesday: 2,
-  mittwoch: 3,
-  wednesday: 3,
-  donnerstag: 4,
-  thursday: 4,
-  freitag: 5,
-  friday: 5,
-  samstag: 6,
-  saturday: 6,
-};
+const FORECAST_CARD_COUNT = 5;
 
 class HttpError extends Error {
   constructor(status, message, body) {
@@ -41,39 +24,14 @@ class HttpError extends Error {
   }
 }
 
-const getNextWeekday = (weekdayName) => {
-  const index = WEEKDAY_INDEX[(weekdayName || "").toLocaleLowerCase("de-DE")];
-  if (typeof index === "number") {
-    return WEEKDAYS_DE[(index + 1) % WEEKDAYS_DE.length];
-  }
-
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toLocaleDateString("de-DE", { weekday: "long" });
-};
-
 const buildForecastCards = (forecast) => {
-  const cards = forecast.slice(0, FORECAST_CARD_COUNT).map((day) => ({
+  return forecast.slice(0, FORECAST_CARD_COUNT).map((day) => ({
     day: day.day,
     image: typeof day.id === "number" ? getWeatherImage(day.id) : null,
     description: day.description || "Nicht verfügbar",
     minTemp: typeof day.tempMin === "number" ? day.tempMin : null,
     maxTemp: typeof day.tempMax === "number" ? day.tempMax : null,
   }));
-
-  let lastDay = cards[cards.length - 1]?.day || new Date().toLocaleDateString("de-DE", { weekday: "long" });
-  while (cards.length < FORECAST_CARD_COUNT) {
-    lastDay = getNextWeekday(lastDay);
-    cards.push({
-      day: lastDay,
-      image: null,
-      description: "Nicht verfügbar",
-      minTemp: null,
-      maxTemp: null,
-    });
-  }
-
-  return cards;
 };
 
 export default function WeatherApp() {
@@ -93,6 +51,9 @@ export default function WeatherApp() {
   const [selectedStationId, setSelectedStationId] = useState("");
   const [themeName, setThemeName] = useState("graphite");
   const activeWeatherRequestRef = useRef(0);
+  const initialWeatherLoadedRef = useRef(false);
+  const lastWeatherRequestRef = useRef({ city: "", startedAt: 0 });
+  const lastRateLimitNoticeRef = useRef(0);
   const { isAuthenticated, loginWithRedirect, logout, getAccessTokenSilently, user } = useAuth0();
 
   const timezoneOffsetFormatted = timezoneOffset >= 0 ? `+${timezoneOffset}` : timezoneOffset;
@@ -154,12 +115,24 @@ export default function WeatherApp() {
 
   const fetchWeatherData = useCallback(
     async (nextCity) => {
+      const trimmedCity = nextCity.trim();
+      const normalizedCity = trimmedCity.toLocaleLowerCase("de-DE");
+      const now = Date.now();
+      if (
+        lastWeatherRequestRef.current.city === normalizedCity &&
+        now - lastWeatherRequestRef.current.startedAt < 2500
+      ) {
+        return;
+      }
+
+      lastWeatherRequestRef.current = { city: normalizedCity, startedAt: now };
+
       const requestId = activeWeatherRequestRef.current + 1;
       activeWeatherRequestRef.current = requestId;
       const isCurrentRequest = () => activeWeatherRequestRef.current === requestId;
 
       try {
-        const data = await authFetchJson(buildApiUrl(`/weather?city=${encodeURIComponent(nextCity)}`));
+        const data = await authFetchJson(buildApiUrl(`/weather?city=${encodeURIComponent(trimmedCity)}`));
         if (!isCurrentRequest()) {
           return;
         }
@@ -250,7 +223,10 @@ export default function WeatherApp() {
               setError("Dieser Eintrag existiert bereits.");
               return;
             case 429:
-              setError("Zu viele Anfragen. Bitte kurz warten.");
+              if (Date.now() - lastRateLimitNoticeRef.current > 15000) {
+                lastRateLimitNoticeRef.current = Date.now();
+                setError("Zu viele Anfragen. Bitte kurz warten.");
+              }
               return;
             case 500:
               setError("Serverfehler. Bitte später erneut versuchen.");
@@ -303,9 +279,15 @@ export default function WeatherApp() {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      initialWeatherLoadedRef.current = false;
       return;
     }
 
+    if (initialWeatherLoadedRef.current) {
+      return;
+    }
+
+    initialWeatherLoadedRef.current = true;
     let cancelled = false;
 
     const loadInitialWeather = async () => {

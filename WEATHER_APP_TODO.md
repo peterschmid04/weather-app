@@ -1,4 +1,4 @@
-﻿# Weather App TODO
+﻿# Weather App mögliches TODO
 
 Stand: 29.05.2026
 
@@ -13,26 +13,28 @@ Hinweis: Diese Datei ist nur eine Sammelliste. Die Punkte aus externen KI-Review
 
 ## Sofort Pruefen
 
-- [ ] Kompletten frischen Start testen: `docker compose down`, dann `docker compose up -d`.
-- [ ] Testen, dass Frontend, Backend, DB, pgAdmin und optional ngrok gemeinsam starten.
+- [x] Kompletten frischen Start testen: `docker compose down`, dann `docker compose up -d`.
+- [x] Testen, dass Frontend, Backend, DB, pgAdmin und optional ngrok gemeinsam starten.
 - [ ] Pruefen: frischer Clone plus lokale `.env` plus `docker compose up -d` reicht wirklich.
-- [ ] Pruefen, dass nach neuen Features keine Secrets in Git landen.
-- [ ] Pruefen, ob `docker compose up -d` mit leerem ngrok-Setup ohne ngrok startet und mit gefuelltem ngrok-Setup ngrok startet.
+- [x] Pruefen, dass nach neuen Features keine Secrets in Git landen.
+- [x] Pruefen, ob `docker compose up -d` mit gefuelltem ngrok-Setup ngrok startet.
+- [ ] Pruefen, ob `docker compose up -d` mit leerem ngrok-Setup ohne ngrok startet.
 - [ ] Responsive Darstellung mit Stationen, Favoriten, Verlauf, Freigaben und Themes visuell pruefen.
 - [ ] Fachliche Funktionen komplett durchtesten: Wetterdashboard, Stadtsuche, Forecast, UV-Index, Luftqualitaet, Login, Verlauf, Favoriten, Wetterstationen, Themes.
 - [ ] Fehlerfaelle 400, 401, 403, 404, 409, 429 und 500 im Frontend und Backend testen.
 
 ## Security und Secrets
 
-- [ ] Nochmals pruefen, ob im README keine echte Auth0-Tenant-ID mehr steht.
-- [ ] Nochmals pruefen, ob in `.env.example`, `docker-compose.yml`, Start-Skripten und README keine echte ngrok-URL mehr als Default steht.
-- [ ] Secret-Scan fuer komplette Git-Historie durchfuehren.
-- [ ] Pruefen, ob alte Commits jemals echte `.env`-Werte, OpenWeatherMap-Keys, Auth0-Werte oder ngrok-Tokens enthalten haben.
+- [x] Nochmals pruefen, ob im README keine echte Auth0-Tenant-ID mehr steht.
+- [x] Nochmals pruefen, ob in `.env.example`, `docker-compose.yml`, Start-Skripten und README keine echte ngrok-URL mehr als Default steht.
+- [x] Secret-Scan fuer komplette Git-Historie durchfuehren.
+- [x] Pruefen, ob alte Commits jemals echte `.env`-Werte, OpenWeatherMap-Keys, Auth0-Werte oder ngrok-Tokens enthalten haben.
+- Ergebnis 29.05.2026: Aktueller Stand enthaelt keine Treffer fuer die alte echte Auth0-Tenant-ID oder echte ngrok-URL in README, `.env.example`, `docker-compose.yml` oder Start-Skripten; die Git-Historie enthaelt aber noch Treffer fuer alte Auth0/ngrok-Werte und muss als potenziell exponiert behandelt werden.
 - [ ] Falls alte Secrets in Git-Historie waren: Keys/Tokens rotieren und Repo-Historie bereinigen oder Risiko dokumentieren.
-- [ ] `.env.example` auf unsichere Default-Passwoerter pruefen.
-- [ ] Start-Skripte sollen bei Default-Passwoertern wie `change-me-for-local-development` warnen oder abbrechen.
-- [ ] Auth0 Domain, Audience und ClientId auf plausibles Format validieren.
-- [ ] OpenWeatherMap API Key beim Start hart validieren.
+- [x] `.env.example` auf unsichere Default-Passwoerter pruefen.
+- [x] Start-Skripte sollen bei Default-Passwoertern wie `change-me-for-local-development` warnen oder abbrechen.
+- [x] Auth0 Domain, Audience und ClientId auf plausibles Format validieren.
+- [x] OpenWeatherMap API Key beim Start hart validieren.
 - [ ] Pruefen, ob Auth0 Client Secret wirklich nicht gebraucht wird; fuer SPA/JWT normalerweise nicht ins Projekt schreiben.
 - [ ] Dokumentieren, dass Auth0 ClientId und Audience in einer SPA oeffentlich lesbar sind und keine Secrets sind.
 - [ ] `DANGEROUSLY_DISABLE_HOST_CHECK=true` bewerten und nur fuer lokale ngrok-Entwicklung erlauben.
@@ -238,33 +240,34 @@ Hinweis: Diese Datei ist nur eine Sammelliste. Die Punkte aus externen KI-Review
 
 ## Start-Skripte
 
-- [ ] `start-weather-app.ps1` pruefen: Docker installiert?
-- [ ] `start-weather-app.ps1` pruefen: Docker Daemon laeuft?
-- [ ] `start-weather-app.ps1` pruefen: Ports 3000, 5122, 5432, 5050 frei?
-- [ ] `start-weather-app.ps1` pruefen: Pflichtwerte in bestehender `.env` gesetzt?
-- [ ] `start-weather-app.ps1` pruefen: Auth0 Domain Format gueltig?
-- [ ] `start-weather-app.ps1` pruefen: Auth0 Audience plausibel?
-- [ ] `start-weather-app.ps1` pruefen: OpenWeatherMap Key nicht leer/Placeholder?
-- [ ] `start-weather-app.ps1` pruefen: ngrok URL gueltig, falls gesetzt?
-- [ ] `start-weather-app.ps1` soll `.env` atomar schreiben, erst `.env.tmp`, dann rename.
-- [ ] `start-weather-app.ps1` soll Backup erstellen, bevor bestehende `.env` ueberschrieben wird.
-- [ ] `start-weather-app.ps1` soll Docker-Fehler klar anzeigen.
-- [ ] `start-weather-app.sh` mit `set -euo pipefail` pruefen.
-- [ ] `start-weather-app.sh` Docker installiert/Daemon laeuft pruefen.
-- [ ] `start-weather-app.sh` `docker compose` vs `docker-compose` fallback pruefen.
-- [ ] `start-weather-app.sh` `openssl` Fallback fuer Passwortgenerierung pruefen.
-- [ ] `start-weather-app.sh` Trap fuer `stty echo` bei Abbruch einbauen.
-- [ ] `start-weather-app.sh` `.env` atomar schreiben.
-- [ ] `start-weather-app.sh` `.env` Backup vor Ueberschreiben erstellen.
-- [ ] `start-weather-app.sh` Ausfuehrbarkeit und LF-Zeilenenden dokumentieren.
-- [ ] `start-weather-app.bat` pruefen: `chcp 65001` fuer Umlaute setzen.
-- [ ] `start-weather-app.bat` Docker-Verfuegbarkeit pruefen oder klar nur Wrapper lassen.
-- [ ] Start-Skripte sollen `.env` nicht neu schreiben, wenn sie bereits existiert und gueltig ist.
-- [ ] Start-Skripte sollen bei bestehender `.env` optional nur `docker compose up -d` ausfuehren.
-- [ ] Separate Passwoerter fuer PostgreSQL und pgAdmin generieren.
+- [x] `start-weather-app.ps1` pruefen: Docker installiert?
+- [x] `start-weather-app.ps1` pruefen: Docker Daemon laeuft?
+- [x] `start-weather-app.ps1` pruefen: Ports 3000, 5122, 5432, 5050 frei?
+- [x] `start-weather-app.ps1` pruefen: Pflichtwerte in bestehender `.env` gesetzt?
+- [x] `start-weather-app.ps1` pruefen: Auth0 Domain Format gueltig?
+- [x] `start-weather-app.ps1` pruefen: Auth0 Audience plausibel?
+- [x] `start-weather-app.ps1` pruefen: OpenWeatherMap Key nicht leer/Placeholder?
+- [x] `start-weather-app.ps1` pruefen: ngrok URL gueltig, falls gesetzt?
+- [x] `start-weather-app.ps1` soll `.env` atomar schreiben, erst `.env.tmp`, dann rename.
+- [x] `start-weather-app.ps1` soll Backup erstellen, bevor bestehende `.env` ueberschrieben wird.
+- [x] `start-weather-app.ps1` soll Docker-Fehler klar anzeigen.
+- [x] `start-weather-app.sh` mit `set -euo pipefail` pruefen.
+- [x] `start-weather-app.sh` Docker installiert/Daemon laeuft pruefen.
+- [x] `start-weather-app.sh` `docker compose` vs `docker-compose` fallback pruefen.
+- [x] `start-weather-app.sh` `openssl` Fallback fuer Passwortgenerierung pruefen.
+- [x] `start-weather-app.sh` Trap fuer `stty echo` bei Abbruch einbauen.
+- [x] `start-weather-app.sh` `.env` atomar schreiben.
+- [x] `start-weather-app.sh` `.env` Backup vor Ueberschreiben erstellen.
+- [x] `start-weather-app.sh` Ausfuehrbarkeit und LF-Zeilenenden dokumentieren.
+- [x] `start-weather-app.bat` pruefen: `chcp 65001` fuer Umlaute setzen.
+- [x] `start-weather-app.bat` Docker-Verfuegbarkeit pruefen oder klar nur Wrapper lassen.
+- [x] Start-Skripte sollen `.env` nicht neu schreiben, wenn sie bereits existiert und gueltig ist.
+- [x] Start-Skripte sollen bei bestehender `.env` optional nur `docker compose up -d` ausfuehren.
+- [x] Separate Passwoerter fuer PostgreSQL und pgAdmin generieren.
 - [ ] Zentrales Setup-Skript statt doppelter Logik in PowerShell und Shell pruefen.
-- [ ] Optionale Flags pruefen: `--reset-db`, `--with-ngrok`, `--validate-only`.
-- [ ] Post-Setup-Checks ergaenzen: Frontend erreichbar, Backend Health, DB Health.
+- [x] Optionale Flags pruefen: `--with-ngrok`, `--validate-only`.
+- [ ] Optionales Flag `--reset-db` pruefen; aktuell bewusst nicht automatisiert, damit keine Daten versehentlich geloescht werden.
+- [x] Post-Setup-Checks ergaenzen: Frontend erreichbar, Backend Swagger/Health-Proxy erreichbar, DB Health ueber Compose.
 
 ## Datenbank und ORM
 
