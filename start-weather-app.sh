@@ -266,19 +266,20 @@ fi
 echo ""
 echo "No .env found. Enter the required Auth0 and OpenWeatherMap values."
 echo "PostgreSQL database/user and Auth0 connection names are filled automatically."
-echo "PostgreSQL and pgAdmin passwords can be entered or accepted as generated defaults."
+echo "AUTH0_AUDIENCE is fixed to https://weather-api and is not asked here."
+echo "For local passwords, press Enter to accept the generated password or enter your own."
 echo "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 echo ""
 
 POSTGRES_DB="weather_app"
 POSTGRES_USER="weather_app"
-POSTGRES_PASSWORD="$(prompt_value "POSTGRES_PASSWORD" "$(generate_password)" "true")"
+POSTGRES_PASSWORD="$(prompt_value "POSTGRES_PASSWORD, press Enter to accept generated password" "$(generate_password)" "true")"
 
-PGADMIN_DEFAULT_EMAIL="admin@example.com"
-PGADMIN_DEFAULT_PASSWORD="$(prompt_value "PGADMIN_DEFAULT_PASSWORD" "$(generate_password)" "true")"
+PGADMIN_DEFAULT_EMAIL="$(prompt_value "PGADMIN_DEFAULT_EMAIL" "admin@example.com" "true")"
+PGADMIN_DEFAULT_PASSWORD="$(prompt_value "PGADMIN_DEFAULT_PASSWORD, press Enter to accept generated password" "$(generate_password)" "true")"
 
 AUTH0_DOMAIN="$(prompt_value "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com" "" "true")"
-AUTH0_AUDIENCE="$(prompt_value "AUTH0_AUDIENCE" "https://weather-api")"
+AUTH0_AUDIENCE="https://weather-api"
 AUTH0_CLIENT_ID="$(prompt_value "AUTH0_CLIENT_ID" "" "true")"
 AUTH0_SCOPE="openid profile email read:weather"
 

@@ -45,18 +45,21 @@ bash ./start-weather-app.sh
 ```
 
 Die Startdateien fragen die Werte ab, die lokal in die `.env` geschrieben werden sollen:
-PostgreSQL-Passwort, pgAdmin-Passwort, Auth0 Domain, Auth0 Audience, Auth0
-ClientId, OpenWeatherMap API Key und optional ngrok. Bei den beiden lokalen
+PostgreSQL-Passwort, pgAdmin-E-Mail, pgAdmin-Passwort, Auth0 Domain, Auth0
+ClientId, OpenWeatherMap API Key und optional ngrok. `AUTH0_AUDIENCE` wird fest
+auf `https://weather-api` gesetzt und nicht abgefragt. Bei den beiden lokalen
 Passwörtern wird ein sicherer Vorschlag angezeigt. Enter übernimmt den Vorschlag,
-oder du tippst dein eigenes Passwort ein.
+oder du tippst dein eigenes Passwort ein. Bei `PGADMIN_DEFAULT_EMAIL` übernimmt
+Enter den Standard `admin@example.com`.
 
 Diese Werte werden automatisch in die lokale `.env` geschrieben:
 
 - `POSTGRES_DB=weather_app`: fester lokaler Datenbankname.
 - `POSTGRES_USER=weather_app`: fester lokaler PostgreSQL-User.
 - `POSTGRES_PASSWORD`: lokales PostgreSQL-Passwort aus dem Setup; Enter übernimmt den generierten Vorschlag.
-- `PGADMIN_DEFAULT_EMAIL=admin@example.com`: lokaler pgAdmin-Login.
+- `PGADMIN_DEFAULT_EMAIL`: lokaler pgAdmin-Login aus dem Setup; Enter übernimmt `admin@example.com`.
 - `PGADMIN_DEFAULT_PASSWORD`: lokales pgAdmin-Passwort aus dem Setup; Enter übernimmt den generierten Vorschlag.
+- `AUTH0_AUDIENCE=https://weather-api`: fester lokaler Auth0 API-Identifier.
 - Auth0-Connection-Namen wie `google-oauth2`, `apple`, `facebook` und `github`.
 
 Wichtig: Die Auth0-Connection-Namen sind keine Tokens und keine Secrets. Sie
@@ -247,7 +250,7 @@ NGROK_URL=
 Wichtig:
 
 - Kein Auth0 Client Secret in dieses Projekt schreiben.
-- React ist eine Single Page Application; sie braucht nur die Auth0 Domain, Audience und Client ID.
+- React ist eine Single Page Application; sie braucht nur die Auth0 Domain, Client ID und den festen API-Identifier `https://weather-api`.
 - Provider-Secrets für Google, Apple, Facebook und GitHub gehören in Auth0, nicht in `.env`.
 - `.env.example` enthält nur Platzhalter.
 
@@ -314,7 +317,7 @@ Im Auth0 Dashboard:
 1. Links `Applications` öffnen.
 2. `APIs` auswählen.
 3. API erstellen oder öffnen.
-4. Identifier muss zur `.env` passen.
+4. Identifier muss zum festen Setup-Wert passen.
 
 Beispiel:
 
@@ -329,12 +332,13 @@ Diese Werte aus Auth0 übernehmen:
 ```env
 AUTH0_DOMAIN=dein-tenant.eu.auth0.com
 AUTH0_CLIENT_ID=deine-spa-client-id
-AUTH0_AUDIENCE=https://weather-api
 ```
 
 `AUTH0_DOMAIN` und `AUTH0_CLIENT_ID` stehen bei `Applications -> deine App -> Settings`.
 
-`AUTH0_AUDIENCE` ist der API-Identifier aus `Applications -> APIs`.
+`AUTH0_AUDIENCE` musst du im Setup nicht eingeben. Die Startdateien setzen den
+Wert automatisch auf `https://weather-api`; in Auth0 muss die API deshalb genau
+diesen Identifier haben.
 
 ### 4. Login-Methoden aktivieren
 
