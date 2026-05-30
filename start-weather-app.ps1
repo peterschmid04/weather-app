@@ -277,19 +277,20 @@ if (Test-Path -LiteralPath $EnvPath) {
 Write-Host ""
 Write-Host "No .env found. Enter the required Auth0 and OpenWeatherMap values."
 Write-Host "PostgreSQL database/user and Auth0 connection names are filled automatically."
-Write-Host "PostgreSQL and pgAdmin passwords can be entered or accepted as generated defaults."
+Write-Host "AUTH0_AUDIENCE is fixed to https://weather-api and is not asked here."
+Write-Host "For local passwords, press Enter to accept the generated password or enter your own."
 Write-Host "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 Write-Host ""
 
 $postgresDb = "weather_app"
 $postgresUser = "weather_app"
-$postgresPassword = Read-PlainValue "POSTGRES_PASSWORD" (New-SafePassword)
+$postgresPassword = Read-PlainValue "POSTGRES_PASSWORD, press Enter to accept generated password" (New-SafePassword)
 
-$pgadminEmail = "admin@example.com"
-$pgadminPassword = Read-PlainValue "PGADMIN_DEFAULT_PASSWORD" (New-SafePassword)
+$pgadminEmail = Read-PlainValue "PGADMIN_DEFAULT_EMAIL" "admin@example.com"
+$pgadminPassword = Read-PlainValue "PGADMIN_DEFAULT_PASSWORD, press Enter to accept generated password" (New-SafePassword)
 
 $auth0Domain = Read-PlainValue "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com"
-$auth0Audience = Read-PlainValue "AUTH0_AUDIENCE" "https://weather-api"
+$auth0Audience = "https://weather-api"
 $auth0ClientId = Read-PlainValue "AUTH0_CLIENT_ID"
 $auth0Scope = "openid profile email read:weather"
 
