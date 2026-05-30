@@ -445,6 +445,14 @@ Start:
 docker compose up -d
 ```
 
+Der erste Start kann je nach Rechner und Internetverbindung etwa 10 bis 15
+Minuten dauern, weil Frontend- und Backend-Abhängigkeiten geladen werden. Nach
+Docker Pause/Play dauert es oft noch ungefähr 3 Minuten, bis alles wieder
+stabil erreichbar ist. Den Fortschritt sieht man am besten im Frontend-Log; auch
+wenn dort schon steht, dass die App erreichbar ist, kann es beim ersten Start
+noch ein paar Minuten dauern, bis Browser, Proxy und Backend wirklich sauber
+zusammenspielen.
+
 Status:
 
 ```sh
