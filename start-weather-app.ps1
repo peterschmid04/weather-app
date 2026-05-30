@@ -14,14 +14,6 @@ Set-Location -Path $RepoRoot
 
 $EnvPath = Join-Path $RepoRoot ".env"
 $EnvTempPath = Join-Path $RepoRoot ".env.tmp"
-$RequiredValues = @(
-    "POSTGRES_PASSWORD",
-    "PGADMIN_DEFAULT_PASSWORD",
-    "AUTH0_DOMAIN",
-    "AUTH0_AUDIENCE",
-    "AUTH0_CLIENT_ID",
-    "OPENWEATHERMAP_API_KEY"
-)
 
 function Write-Info {
     param([string]$Message)
@@ -100,19 +92,6 @@ function Read-DotEnv {
     return $values
 }
 
-function Test-PlaceholderValue {
-    param([string]$Value)
-
-    if ([string]::IsNullOrWhiteSpace($Value)) {
-        return $true
-    }
-
-    $normalized = $Value.Trim().ToLowerInvariant()
-    return $normalized -like "change-me*" -or
-        $normalized -like "your-*" -or
-        $normalized -like "replace-*"
-}
-
 function Test-EnvKey {
     param($Values, [string]$Name)
 
@@ -131,61 +110,6 @@ function Get-EnvValue {
     }
 
     return ""
-}
-
-function Test-EnvValues {
-    param($Values)
-
-    $errors = New-Object System.Collections.Generic.List[string]
-
-    foreach ($name in $RequiredValues) {
-        if (-not (Test-EnvKey $Values $name) -or (Test-PlaceholderValue (Get-EnvValue $Values $name))) {
-            $errors.Add("$name is missing or still a placeholder.")
-        }
-    }
-
-    $auth0DomainValue = Get-EnvValue $Values "AUTH0_DOMAIN"
-    if (-not (Test-PlaceholderValue $auth0DomainValue) -and
-        $auth0DomainValue -notmatch "^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)*\.auth0\.com$") {
-        $errors.Add("AUTH0_DOMAIN must look like your-tenant.region.auth0.com.")
-    }
-
-    $auth0AudienceValue = Get-EnvValue $Values "AUTH0_AUDIENCE"
-    if (-not (Test-PlaceholderValue $auth0AudienceValue) -and
-        $auth0AudienceValue -notmatch "^https?://") {
-        $errors.Add("AUTH0_AUDIENCE should be an API identifier URL, for example https://weather-api.")
-    }
-
-    $auth0ClientIdValue = Get-EnvValue $Values "AUTH0_CLIENT_ID"
-    if (-not (Test-PlaceholderValue $auth0ClientIdValue) -and
-        $auth0ClientIdValue -notmatch "^[A-Za-z0-9_-]{16,128}$") {
-        $errors.Add("AUTH0_CLIENT_ID must be the public SPA client id from Auth0.")
-    }
-
-    $logsValue = Get-EnvValue $Values "LOGS"
-    if (-not [string]::IsNullOrWhiteSpace($logsValue) -and $logsValue -notin @("true", "false")) {
-        $errors.Add("LOGS must be true or false.")
-    }
-
-    $ngrokToken = Get-EnvValue $Values "NGROK_AUTHTOKEN"
-    $ngrokUrl = Get-EnvValue $Values "NGROK_URL"
-    $composeProfiles = Get-EnvValue $Values "COMPOSE_PROFILES"
-
-    if (-not [string]::IsNullOrWhiteSpace($ngrokToken) -or -not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
-        if ([string]::IsNullOrWhiteSpace($ngrokToken) -or [string]::IsNullOrWhiteSpace($ngrokUrl)) {
-            $errors.Add("NGROK_AUTHTOKEN and NGROK_URL must both be set, or both stay empty.")
-        }
-
-        if (-not [string]::IsNullOrWhiteSpace($ngrokUrl) -and $ngrokUrl -notmatch "^https://") {
-            $errors.Add("NGROK_URL must start with https://.")
-        }
-
-        if ($composeProfiles -notmatch "(^|,)ngrok(,|$)") {
-            Write-Info "NGROK_AUTHTOKEN and NGROK_URL are set. This script will start Compose with --profile ngrok."
-        }
-    }
-
-    return $errors
 }
 
 function Assert-EnvValue {
@@ -340,20 +264,8 @@ function Start-Stack {
 }
 
 if (Test-Path -LiteralPath $EnvPath) {
-    $existingValues = Read-DotEnv -Path $EnvPath
     if ($ValidateOnly) {
-        Write-Info ".env found. Validating existing file; it will not be rewritten."
-        $errors = Test-EnvValues -Values $existingValues
-        if ($errors.Count -gt 0) {
-            Write-Host ""
-            Write-Host ".env is not valid:"
-            foreach ($errorItem in $errors) {
-                Write-Host "- $errorItem"
-            }
-            Stop-Script 1
-        }
-
-        Write-Info ".env validation passed."
+        Write-Info ".env found. No strict value validation is performed; it will not be rewritten."
         Stop-Script 0
     }
 
@@ -364,16 +276,17 @@ if (Test-Path -LiteralPath $EnvPath) {
 
 Write-Host ""
 Write-Host "No .env found. Enter the required Auth0 and OpenWeatherMap values."
-Write-Host "PostgreSQL, pgAdmin and Auth0 connection names are filled automatically."
+Write-Host "PostgreSQL database/user and Auth0 connection names are filled automatically."
+Write-Host "PostgreSQL and pgAdmin passwords can be entered or accepted as generated defaults."
 Write-Host "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 Write-Host ""
 
 $postgresDb = "weather_app"
 $postgresUser = "weather_app"
-$postgresPassword = New-SafePassword
+$postgresPassword = Read-PlainValue "POSTGRES_PASSWORD" (New-SafePassword)
 
 $pgadminEmail = "admin@example.com"
-$pgadminPassword = New-SafePassword
+$pgadminPassword = Read-PlainValue "PGADMIN_DEFAULT_PASSWORD" (New-SafePassword)
 
 $auth0Domain = Read-PlainValue "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com"
 $auth0Audience = Read-PlainValue "AUTH0_AUDIENCE" "https://weather-api"
@@ -433,18 +346,8 @@ foreach ($entry in $values.GetEnumerator()) {
     Assert-EnvValue $entry.Key $entry.Value
 }
 
-$errors = Test-EnvValues -Values $values
-if ($errors.Count -gt 0) {
-    Write-Host ""
-    Write-Host "The entered values are not valid:"
-    foreach ($errorItem in $errors) {
-        Write-Host "- $errorItem"
-    }
-    Stop-Script 1
-}
-
 if ($ValidateOnly) {
-    Write-Info "Entered values are valid. .env was not written because -ValidateOnly was used."
+    Write-Info "Values were entered. .env was not written because -ValidateOnly was used."
     Stop-Script 0
 }
 

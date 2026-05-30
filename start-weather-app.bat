@@ -25,7 +25,7 @@ if not "%SCRIPT_EXIT%"=="0" (
     echo.
     echo Setup oder Docker-Start wurde mit Fehler beendet.
     echo Lies die Meldung direkt ueber dieser Zeile. Wenn keine .env erstellt wurde,
-    echo war meistens eine Eingabe ungueltig oder die Datei konnte nicht geschrieben werden.
+    echo konnte die Datei meistens nicht geschrieben werden oder das Skript wurde vorher beendet.
     if exist "%~dp0.env" (
         echo .env ist im Projektordner vorhanden.
     ) else (
