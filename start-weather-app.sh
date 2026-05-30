@@ -8,6 +8,31 @@ cd "$(dirname "$0")"
 
 VALIDATE_ONLY=false
 WITH_NGROK=false
+NO_PAUSE=false
+SCRIPT_EXITING=false
+
+pause_if_needed() {
+  if [ "$NO_PAUSE" != "true" ] && [ -t 0 ]; then
+    printf "\nFertig. Enter druecken zum Schliessen: " >&2
+    IFS= read -r _ || true
+  fi
+}
+
+exit_script() {
+  local code="${1:-0}"
+  SCRIPT_EXITING=true
+  pause_if_needed
+  exit "$code"
+}
+
+on_exit() {
+  local code="$?"
+  if [ "$SCRIPT_EXITING" != "true" ] && [ "$code" -ne 0 ]; then
+    printf "\nDas Skript wurde mit Fehlercode %s beendet.\n" "$code" >&2
+    pause_if_needed
+  fi
+}
+trap on_exit EXIT
 
 for arg in "$@"; do
   case "$arg" in
@@ -17,15 +42,18 @@ for arg in "$@"; do
     --with-ngrok)
       WITH_NGROK=true
       ;;
+    --no-pause)
+      NO_PAUSE=true
+      ;;
     --reset-db)
       echo "--reset-db is intentionally not automated because it deletes database volumes." >&2
       echo "Run docker compose down -v manually when you really want to reset data." >&2
-      exit 1
+      exit_script 1
       ;;
     *)
       echo "Unknown option: $arg" >&2
-      echo "Supported: --validate-only, --with-ngrok" >&2
-      exit 1
+      echo "Supported: --validate-only, --with-ngrok, --no-pause" >&2
+      exit_script 1
       ;;
   esac
 done
@@ -86,7 +114,7 @@ assert_env_value() {
     *"
 "*)
       echo "$name must not contain line breaks." >&2
-      exit 1
+      exit_script 1
       ;;
   esac
 }
@@ -189,7 +217,7 @@ validate_env_values() {
 detect_docker_compose() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "Docker is not installed or not available in PATH." >&2
-    exit 1
+    exit_script 1
   fi
 
   if docker compose version >/dev/null 2>&1; then
@@ -198,7 +226,7 @@ detect_docker_compose() {
     COMPOSE_CMD=(docker-compose)
   else
     echo "docker compose or docker-compose is not available." >&2
-    exit 1
+    exit_script 1
   fi
 }
 
@@ -250,7 +278,7 @@ compose_up() {
 
   if ! "${COMPOSE_CMD[@]}" "${compose_args[@]}"; then
     echo "Docker Compose start failed. Check the error above." >&2
-    exit 1
+    exit_script 1
   fi
 
   wait_http "Frontend" "http://localhost:3000"
@@ -307,16 +335,16 @@ if [ -f ".env" ]; then
     info ".env found. Validating existing file; it will not be rewritten."
     if ! validate_env_values; then
       echo ".env is not valid. Fix it or remove it and run this script again." >&2
-      exit 1
+      exit_script 1
     fi
 
     info ".env validation passed."
-    exit 0
+    exit_script 0
   fi
 
   info ".env found. Starting Docker Compose without asking for values."
   compose_up
-  exit 0
+  exit_script 0
 fi
 
 echo ""
@@ -389,15 +417,16 @@ done
 
 if ! validate_env_values; then
   echo "Entered values are not valid. .env was not written." >&2
-  exit 1
+  exit_script 1
 fi
 
 if [ "$VALIDATE_ONLY" = "true" ]; then
   info "Entered values are valid. .env was not written because --validate-only was used."
-  exit 0
+  exit_script 0
 fi
 
 write_env_file
 
 info ".env written. Starting Docker Compose..."
 compose_up
+exit_script 0
