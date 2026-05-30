@@ -105,6 +105,12 @@ vorhandene `.env` gedacht. Dann fragt das Script zusätzlich `NGROK_AUTHTOKEN` u
 wird sie nicht neu geschrieben. Dann startet ngrok automatisch nur, wenn
 `NGROK_AUTHTOKEN` und `NGROK_URL` in `.env` bereits gefüllt sind.
 
+Die Startdateien starten zuerst `db` und `backend`, danach `frontend` und
+`pgadmin`. ngrok wird erst danach als optionaler Tunnel gestartet. Wenn ngrok
+fehlschlägt, zum Beispiel weil die statische ngrok-URL bereits auf einem anderen
+Computer läuft, bleibt die lokale App trotzdem über `http://localhost:3000`
+nutzbar.
+
 Hinweis für macOS/Linux: Falls die Shell-Datei nicht ausführbar ist, kann man
 sie weiter mit `bash ./start-weather-app.sh` starten. Für direkten Start per
 `./start-weather-app.sh` einmalig `chmod +x ./start-weather-app.sh` ausführen.
@@ -578,6 +584,11 @@ docker compose up -d
 Wenn `COMPOSE_PROFILES` leer ist, wird der ngrok-Service von Docker Compose nicht gestartet und das ngrok-Image wird nicht benötigt. Wenn `COMPOSE_PROFILES=ngrok` gesetzt ist, startet Docker Compose den ngrok-Service mit und zieht das Image bei Bedarf.
 
 Compose wartet dabei auf den Frontend-Healthcheck. ngrok startet also erst, wenn der React-Service im Container auf `http://localhost:3000` antwortet. Das verhindert, dass der Tunnel zu früh startet, während `npm ci` oder `npm start` noch laufen.
+
+Die Startdateien (`.bat`, `.ps1`, `.sh`) starten den Kernstack bewusst getrennt:
+zuerst Datenbank und Backend, danach Frontend und pgAdmin, danach optional
+ngrok. Dadurch verhindert ein ngrok-Fehler wie `ERR_NGROK_334` nicht mehr, dass
+der API-Container gestartet wird.
 
 Wenn Docker Compose schon läuft:
 

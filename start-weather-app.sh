@@ -192,19 +192,29 @@ compose_up() {
   check_ports
   ngrok_token="$(get_env_value NGROK_AUTHTOKEN)"
   ngrok_url="$(get_env_value NGROK_URL)"
-  if [ -n "$ngrok_token" ] && [ -n "$ngrok_url" ]; then
-    compose_args=(--profile ngrok up -d)
-  else
-    compose_args=(up -d)
+
+  info "Starting database and backend first."
+  if ! "${COMPOSE_CMD[@]}" up -d db backend; then
+    echo "Docker Compose core backend start failed. Check the error above." >&2
+    exit_script 1
   fi
 
-  if ! "${COMPOSE_CMD[@]}" "${compose_args[@]}"; then
-    echo "Docker Compose start failed. Check the error above." >&2
+  wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json"
+
+  info "Starting frontend and pgAdmin."
+  if ! "${COMPOSE_CMD[@]}" up -d frontend pgadmin; then
+    echo "Docker Compose frontend/pgAdmin start failed. Check the error above." >&2
     exit_script 1
   fi
 
   wait_http "Frontend" "http://localhost:3000"
-  wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json"
+
+  if [ -n "$ngrok_token" ] && [ -n "$ngrok_url" ]; then
+    info "Starting optional ngrok tunnel."
+    if ! "${COMPOSE_CMD[@]}" --profile ngrok up -d ngrok; then
+      echo "ngrok could not be started. The local app still runs on http://localhost:3000." >&2
+    fi
+  fi
 }
 
 write_env_file() {
