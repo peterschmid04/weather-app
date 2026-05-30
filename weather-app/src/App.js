@@ -85,12 +85,17 @@ export default function WeatherApp() {
   // responses into HttpError instances.
   const authFetchJson = useCallback(
     async (url, options = {}) => {
-      const token = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: process.env.REACT_APP_AUTH0_SCOPE,
-        },
-      });
+      let token;
+      try {
+        token = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+            scope: process.env.REACT_APP_AUTH0_SCOPE,
+          },
+        });
+      } catch (error) {
+        throw new HttpError(401, "Auth0 konnte kein Access Token ausstellen.", error);
+      }
 
       const res = await fetch(url, {
         ...options,
