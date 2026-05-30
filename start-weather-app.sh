@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # macOS/Linux setup script.
-# It mirrors the PowerShell script: validate existing .env, otherwise create it
+# It mirrors the PowerShell script: start directly with an existing .env, otherwise create it
 # atomically from required Auth0/OpenWeatherMap values and generated passwords.
 cd "$(dirname "$0")"
 
@@ -220,23 +220,14 @@ detect_docker_compose() {
     exit 1
   fi
 
-  if ! docker info >/dev/null 2>&1; then
-    echo "Docker is installed, but the Docker daemon is not running." >&2
-    exit 1
-  fi
-
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
-    return
-  fi
-
-  if command -v docker-compose >/dev/null 2>&1; then
+  elif command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_CMD=(docker-compose)
-    return
+  else
+    echo "docker compose or docker-compose is not available." >&2
+    exit 1
   fi
-
-  echo "docker compose or docker-compose is not available." >&2
-  exit 1
 }
 
 check_ports() {
@@ -340,17 +331,18 @@ write_env_file() {
 }
 
 if [ -f ".env" ]; then
-  info ".env found. Validating existing file; it will not be rewritten."
-  if ! validate_env_values; then
-    echo ".env is not valid. Fix it or remove it and run this script again." >&2
-    exit 1
-  fi
-
   if [ "$VALIDATE_ONLY" = "true" ]; then
+    info ".env found. Validating existing file; it will not be rewritten."
+    if ! validate_env_values; then
+      echo ".env is not valid. Fix it or remove it and run this script again." >&2
+      exit 1
+    fi
+
     info ".env validation passed."
     exit 0
   fi
 
+  info ".env found. Starting Docker Compose without asking for values."
   compose_up
   exit 0
 fi

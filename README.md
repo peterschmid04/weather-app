@@ -62,13 +62,13 @@ müssen nur zu den Connection-Namen in deinem Auth0 Dashboard passen. Google-,
 Apple-, Facebook- oder GitHub-Client-Secrets gehören nicht in `.env`, sondern in
 die jeweilige Auth0 Social Connection.
 
-Wenn `.env` bereits existiert, wird sie validiert, aber nicht neu geschrieben. Ist sie gueltig, starten die Scripts direkt Docker Compose:
+Wenn `.env` bereits existiert, fragen die Startdateien nichts ab und starten direkt Docker Compose. Die Datei wird beim normalen Start nicht neu geschrieben und nicht blockierend validiert:
 
 ```sh
 docker compose up -d
 ```
 
-Ist `.env` unvollstaendig oder enthaelt noch Platzhalter wie `change-me-for-local-development`, brechen die Scripts mit einer klaren Meldung ab. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird spaeter doch eine bestehende `.env` ueberschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
+Wenn keine `.env` existiert, prüfen die Scripts deine neu eingegebenen Werte vor dem Schreiben. Sind Pflichtwerte leer oder enthalten noch Platzhalter wie `change-me-for-local-development`, brechen die Scripts mit einer klaren Meldung ab. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird später doch eine bestehende `.env` überschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
 
 Zusatzoptionen fuer die Startdateien:
 
@@ -85,8 +85,8 @@ PowerShell:
 ```
 
 `--validate-only` beziehungsweise `-ValidateOnly` prüft die Werte und startet
-Docker danach nicht. Wenn bereits eine `.env` existiert, wird nur diese Datei
-geprüft und nicht verändert.
+Docker danach nicht. Wenn bereits eine `.env` existiert, wird nur mit dieser
+Option geprüft; der normale Start läuft mit vorhandener `.env` einfach durch.
 
 `--with-ngrok` beziehungsweise `-WithNgrok` ist vor allem für den ersten Lauf ohne
 vorhandene `.env` gedacht. Dann fragt das Script zusätzlich `NGROK_AUTHTOKEN` und
@@ -110,7 +110,7 @@ Root-Dateien:
 - `.gitignore`: Schützt lokale Secrets, Build-Ausgaben, Logs und Abhängigkeiten vor Git.
 - `docker-compose.yml`: Startet Frontend, Backend, PostgreSQL, pgAdmin und optional ngrok.
 - `start-weather-app.bat`: Windows-CMD-Wrapper für das PowerShell-Setup.
-- `start-weather-app.ps1`: Windows-Setupscript; validiert oder erzeugt `.env` und startet Docker Compose.
+- `start-weather-app.ps1`: Windows-Setupscript; startet mit vorhandener `.env` direkt oder erzeugt bei Bedarf eine neue `.env`.
 - `start-weather-app.sh`: macOS/Linux-Setupscript mit gleicher Aufgabe wie die PowerShell-Variante.
 
 Docker-Ordner:

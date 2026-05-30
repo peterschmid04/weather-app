@@ -60,14 +60,17 @@ Setupscript auf. Dadurch liegt die eigentliche Logik nur an einer Stelle.
 
 `start-weather-app.ps1`
 
-Windows-Setupscript. Es prueft Docker, validiert eine bestehende `.env`, legt
-bei Bedarf eine neue `.env` atomar an und startet danach Docker Compose.
+Windows-Setupscript. Wenn eine `.env` existiert, startet es Docker Compose ohne
+neue Abfragen. Wenn keine `.env` existiert, fragt es die noetigen Werte ab, legt
+die neue `.env` atomar an und startet danach Docker Compose. Mit `-ValidateOnly`
+wird eine bestehende `.env` nur geprueft und nicht gestartet.
 
 `start-weather-app.sh`
 
 macOS/Linux-Setupscript. Es hat die gleiche Aufgabe wie die PowerShell-Variante:
-Pflichtwerte pruefen, `.env` nur bei Bedarf schreiben und Docker Compose
-starten.
+mit bestehender `.env` direkt starten, ohne `.env` Werte abfragen, bei Bedarf
+eine neue `.env` schreiben und Docker Compose starten. Mit `--validate-only`
+wird nur geprueft.
 
 `WEATHER_APP_TODO.md`
 

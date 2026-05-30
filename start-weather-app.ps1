@@ -4,7 +4,7 @@ param(
 )
 
 # Windows/PowerShell setup script.
-# It validates an existing .env without rewriting it, or creates a new .env
+# It starts directly when an existing .env is present, or creates a new .env
 # from the minimum required user inputs and generated local passwords.
 $ErrorActionPreference = "Stop"
 
@@ -215,14 +215,36 @@ function Test-DockerReady {
         throw "Docker is not installed or not available in PATH."
     }
 
-    & docker info *> $null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Docker is installed, but the Docker daemon is not running."
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker compose version *> $null
+        $composeVersionExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
 
-    & docker compose version *> $null
-    if ($LASTEXITCODE -ne 0) {
+    if ($composeVersionExitCode -ne 0) {
         throw "docker compose is not available. Please install Docker Desktop with Compose v2."
+    }
+}
+
+function Invoke-DockerCompose {
+    param([string[]]$Arguments)
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker compose @Arguments
+        $composeExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($composeExitCode -ne 0) {
+        throw "docker compose $($Arguments -join ' ') failed with exit code $composeExitCode."
     }
 }
 
@@ -235,15 +257,6 @@ function Test-Ports {
                 Write-Info "Port $port is already in use. If this is the Weather App stack, docker compose up will reuse it."
             }
         }
-    }
-}
-
-function Invoke-DockerCompose {
-    param([string[]]$Arguments)
-
-    & docker compose @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "docker compose $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
     }
 }
 
@@ -338,23 +351,24 @@ function Start-Stack {
 }
 
 if (Test-Path -LiteralPath $EnvPath) {
-    Write-Info ".env found. Validating existing file; it will not be rewritten."
     $existingValues = Read-DotEnv -Path $EnvPath
-    $errors = Test-EnvValues -Values $existingValues
-    if ($errors.Count -gt 0) {
-        Write-Host ""
-        Write-Host ".env is not valid:"
-        foreach ($errorItem in $errors) {
-            Write-Host "- $errorItem"
-        }
-        exit 1
-    }
-
     if ($ValidateOnly) {
+        Write-Info ".env found. Validating existing file; it will not be rewritten."
+        $errors = Test-EnvValues -Values $existingValues
+        if ($errors.Count -gt 0) {
+            Write-Host ""
+            Write-Host ".env is not valid:"
+            foreach ($errorItem in $errors) {
+                Write-Host "- $errorItem"
+            }
+            exit 1
+        }
+
         Write-Info ".env validation passed."
         exit 0
     }
 
+    Write-Info ".env found. Starting Docker Compose without asking for values."
     Start-Stack
     exit 0
 }
