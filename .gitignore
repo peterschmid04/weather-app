@@ -38,3 +38,6 @@ coverage/
 logs/
 **/logs/
 *.log
+
+# Local planning notes
+WEATHER_APP_TODO.md
