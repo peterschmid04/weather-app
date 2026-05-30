@@ -136,84 +136,6 @@ get_env_value() {
   ' .env
 }
 
-is_placeholder() {
-  local value="${1:-}"
-  local normalized
-  normalized="$(printf "%s" "$value" | tr '[:upper:]' '[:lower:]')"
-
-  [ -z "$normalized" ] ||
-    case "$normalized" in
-      change-me*|your-*|replace-*) true ;;
-      *) false ;;
-    esac
-}
-
-validate_env_values() {
-  local errors=0
-  local required_values=(
-    POSTGRES_PASSWORD
-    PGADMIN_DEFAULT_PASSWORD
-    AUTH0_DOMAIN
-    AUTH0_AUDIENCE
-    AUTH0_CLIENT_ID
-    OPENWEATHERMAP_API_KEY
-  )
-
-  for name in "${required_values[@]}"; do
-    value="$(get_env_value "$name")"
-    if is_placeholder "$value"; then
-      echo "- $name is missing or still a placeholder." >&2
-      errors=$((errors + 1))
-    fi
-  done
-
-  auth0_domain="$(get_env_value AUTH0_DOMAIN)"
-  if ! is_placeholder "$auth0_domain" && ! printf "%s" "$auth0_domain" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9-]*(\.[A-Za-z0-9][A-Za-z0-9-]*)*\.auth0\.com$'; then
-    echo "- AUTH0_DOMAIN must look like your-tenant.region.auth0.com." >&2
-    errors=$((errors + 1))
-  fi
-
-  auth0_audience="$(get_env_value AUTH0_AUDIENCE)"
-  if ! is_placeholder "$auth0_audience" && ! printf "%s" "$auth0_audience" | grep -Eq '^https?://'; then
-    echo "- AUTH0_AUDIENCE should be an API identifier URL, for example https://weather-api." >&2
-    errors=$((errors + 1))
-  fi
-
-  auth0_client_id="$(get_env_value AUTH0_CLIENT_ID)"
-  if ! is_placeholder "$auth0_client_id" && ! printf "%s" "$auth0_client_id" | grep -Eq '^[A-Za-z0-9_-]{16,128}$'; then
-    echo "- AUTH0_CLIENT_ID must be the public SPA client id from Auth0." >&2
-    errors=$((errors + 1))
-  fi
-
-  logs_value="$(get_env_value LOGS)"
-  if [ -n "$logs_value" ] && [ "$logs_value" != "true" ] && [ "$logs_value" != "false" ]; then
-    echo "- LOGS must be true or false." >&2
-    errors=$((errors + 1))
-  fi
-
-  ngrok_token="$(get_env_value NGROK_AUTHTOKEN)"
-  ngrok_url="$(get_env_value NGROK_URL)"
-  compose_profiles="$(get_env_value COMPOSE_PROFILES)"
-  if [ -n "$ngrok_token" ] || [ -n "$ngrok_url" ]; then
-    if [ -z "$ngrok_token" ] || [ -z "$ngrok_url" ]; then
-      echo "- NGROK_AUTHTOKEN and NGROK_URL must both be set, or both stay empty." >&2
-      errors=$((errors + 1))
-    fi
-
-    if [ -n "$ngrok_url" ] && ! printf "%s" "$ngrok_url" | grep -Eq '^https://'; then
-      echo "- NGROK_URL must start with https://." >&2
-      errors=$((errors + 1))
-    fi
-
-    case ",$compose_profiles," in
-      *,ngrok,*) ;;
-      *) info "NGROK_AUTHTOKEN and NGROK_URL are set. This script will start Compose with --profile ngrok." ;;
-    esac
-  fi
-
-  return "$errors"
-}
-
 detect_docker_compose() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "Docker is not installed or not available in PATH." >&2
@@ -332,13 +254,7 @@ write_env_file() {
 
 if [ -f ".env" ]; then
   if [ "$VALIDATE_ONLY" = "true" ]; then
-    info ".env found. Validating existing file; it will not be rewritten."
-    if ! validate_env_values; then
-      echo ".env is not valid. Fix it or remove it and run this script again." >&2
-      exit_script 1
-    fi
-
-    info ".env validation passed."
+    info ".env found. No strict value validation is performed; it will not be rewritten."
     exit_script 0
   fi
 
@@ -349,16 +265,17 @@ fi
 
 echo ""
 echo "No .env found. Enter the required Auth0 and OpenWeatherMap values."
-echo "PostgreSQL, pgAdmin and Auth0 connection names are filled automatically."
+echo "PostgreSQL database/user and Auth0 connection names are filled automatically."
+echo "PostgreSQL and pgAdmin passwords can be entered or accepted as generated defaults."
 echo "Auth0 social provider client secrets stay in the Auth0 Dashboard, not here."
 echo ""
 
 POSTGRES_DB="weather_app"
 POSTGRES_USER="weather_app"
-POSTGRES_PASSWORD="$(generate_password)"
+POSTGRES_PASSWORD="$(prompt_value "POSTGRES_PASSWORD" "$(generate_password)" "true")"
 
 PGADMIN_DEFAULT_EMAIL="admin@example.com"
-PGADMIN_DEFAULT_PASSWORD="$(generate_password)"
+PGADMIN_DEFAULT_PASSWORD="$(prompt_value "PGADMIN_DEFAULT_PASSWORD" "$(generate_password)" "true")"
 
 AUTH0_DOMAIN="$(prompt_value "AUTH0_DOMAIN, for example dev-abc.eu.auth0.com" "" "true")"
 AUTH0_AUDIENCE="$(prompt_value "AUTH0_AUDIENCE" "https://weather-api")"
@@ -415,13 +332,8 @@ do
   assert_env_value "${pair%%=*}" "${pair#*=}"
 done
 
-if ! validate_env_values; then
-  echo "Entered values are not valid. .env was not written." >&2
-  exit_script 1
-fi
-
 if [ "$VALIDATE_ONLY" = "true" ]; then
-  info "Entered values are valid. .env was not written because --validate-only was used."
+  info "Values were entered. .env was not written because --validate-only was used."
   exit_script 0
 fi
 

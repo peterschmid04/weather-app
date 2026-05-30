@@ -44,17 +44,19 @@ macOS oder Linux:
 bash ./start-weather-app.sh
 ```
 
-Die Startdateien fragen nur die Werte ab, die nicht sinnvoll geraten werden können:
-Auth0 Domain, Auth0 Audience, Auth0 ClientId, OpenWeatherMap API Key und optional
-ngrok.
+Die Startdateien fragen die Werte ab, die lokal in die `.env` geschrieben werden sollen:
+PostgreSQL-Passwort, pgAdmin-Passwort, Auth0 Domain, Auth0 Audience, Auth0
+ClientId, OpenWeatherMap API Key und optional ngrok. Bei den beiden lokalen
+Passwörtern wird ein sicherer Vorschlag angezeigt. Enter übernimmt den Vorschlag,
+oder du tippst dein eigenes Passwort ein.
 
 Diese Werte werden automatisch in die lokale `.env` geschrieben:
 
 - `POSTGRES_DB=weather_app`: fester lokaler Datenbankname.
 - `POSTGRES_USER=weather_app`: fester lokaler PostgreSQL-User.
-- `POSTGRES_PASSWORD`: zufällig generiertes lokales PostgreSQL-Passwort.
+- `POSTGRES_PASSWORD`: lokales PostgreSQL-Passwort aus dem Setup; Enter übernimmt den generierten Vorschlag.
 - `PGADMIN_DEFAULT_EMAIL=admin@example.com`: lokaler pgAdmin-Login.
-- `PGADMIN_DEFAULT_PASSWORD`: eigenes zufällig generiertes pgAdmin-Passwort.
+- `PGADMIN_DEFAULT_PASSWORD`: lokales pgAdmin-Passwort aus dem Setup; Enter übernimmt den generierten Vorschlag.
 - Auth0-Connection-Namen wie `google-oauth2`, `apple`, `facebook` und `github`.
 
 Wichtig: Die Auth0-Connection-Namen sind keine Tokens und keine Secrets. Sie
@@ -68,7 +70,7 @@ Wenn `.env` bereits existiert, fragen die Startdateien nichts ab und starten dir
 docker compose up -d
 ```
 
-Wenn keine `.env` existiert, prüfen die Scripts deine neu eingegebenen Werte vor dem Schreiben. Sind Pflichtwerte leer oder enthalten noch Platzhalter wie `change-me-for-local-development`, brechen die Scripts mit einer klaren Meldung ab. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird später doch eine bestehende `.env` überschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
+Wenn keine `.env` existiert, schreiben die Scripts deine eingegebenen Werte direkt in die lokale `.env`. Es gibt keine blockierende Platzhalter- oder Formatprüfung mehr. Neue `.env`-Dateien werden atomar geschrieben: erst `.env.tmp`, danach Rename zu `.env`. Wird später doch eine bestehende `.env` überschrieben, wird vorher eine `.env.backup.<datum>` erstellt.
 
 Zusatzoptionen fuer die Startdateien:
 
@@ -86,9 +88,9 @@ PowerShell:
 .\start-weather-app.ps1 -NoPause
 ```
 
-`--validate-only` beziehungsweise `-ValidateOnly` prüft die Werte und startet
-Docker danach nicht. Wenn bereits eine `.env` existiert, wird nur mit dieser
-Option geprüft; der normale Start läuft mit vorhandener `.env` einfach durch.
+`--validate-only` beziehungsweise `-ValidateOnly` ist nur ein Trockenlauf: Docker
+wird danach nicht gestartet und bei vorhandener `.env` wird nichts neu geschrieben.
+Die Option blockiert keine Werte mit Platzhalter- oder Formatprüfungen.
 
 Ohne Zusatzoption bleibt das Script-Fenster am Ende offen, damit Fehlermeldungen
 sichtbar bleiben. `--no-pause` beziehungsweise `-NoPause` ist nur für Tests oder
@@ -216,10 +218,10 @@ Beispiel:
 ```env
 POSTGRES_DB=weather_app
 POSTGRES_USER=weather_app
-POSTGRES_PASSWORD=change-me-for-local-development
+POSTGRES_PASSWORD=dein-lokales-postgres-passwort
 
 PGADMIN_DEFAULT_EMAIL=admin@example.com
-PGADMIN_DEFAULT_PASSWORD=change-me-for-local-development
+PGADMIN_DEFAULT_PASSWORD=dein-lokales-pgadmin-passwort
 
 AUTH0_DOMAIN=your-tenant.region.auth0.com
 AUTH0_AUDIENCE=https://weather-api
