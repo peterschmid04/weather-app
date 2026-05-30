@@ -176,12 +176,12 @@ wait_http() {
   while [ "$SECONDS" -lt "$deadline" ]; do
     if command -v curl >/dev/null 2>&1 && curl -fsS "$url" >/dev/null 2>&1; then
       info "$name is reachable."
-      return
+      return 0
     fi
 
     if command -v wget >/dev/null 2>&1 && wget -qO- "$url" >/dev/null 2>&1; then
       info "$name is reachable."
-      return
+      return 0
     fi
 
     if [ "$SECONDS" -ge "$next_notice" ]; then
@@ -193,6 +193,32 @@ wait_http() {
   done
 
   info "$name was not reachable within $wait_seconds seconds. Check docker compose logs."
+  return 1
+}
+
+postgres_password_mismatch() {
+  local logs
+  logs="$("${COMPOSE_CMD[@]}" logs --tail=200 db backend 2>&1 || true)"
+  printf "%s" "$logs" | grep -qi "password authentication failed"
+}
+
+show_startup_diagnostics() {
+  local service
+  info "Container status:"
+  "${COMPOSE_CMD[@]}" ps || true
+
+  for service in "$@"; do
+    info "Recent $service logs:"
+    "${COMPOSE_CMD[@]}" logs --tail=80 "$service" || true
+  done
+}
+
+reset_stack_volumes() {
+  info "PostgreSQL password mismatch detected. Recreating Docker volumes with the current .env password."
+  info "Running docker compose down -v. Local database data from this Compose stack will be reset."
+  "${COMPOSE_CMD[@]}" down -v
+  info "Starting database and backend again with fresh volumes."
+  "${COMPOSE_CMD[@]}" up -d db backend
 }
 
 compose_up() {
@@ -207,7 +233,20 @@ compose_up() {
     exit_script 1
   fi
 
-  wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json" 300
+  if ! wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json" 300; then
+    if postgres_password_mismatch; then
+      reset_stack_volumes
+      wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json" 300 || {
+        show_startup_diagnostics backend db
+        echo "Backend did not become reachable after volume reset. Fix the error above before frontend/ngrok are started." >&2
+        exit_script 1
+      }
+    else
+      show_startup_diagnostics backend db
+      echo "Backend did not become reachable. Fix the error above before frontend/ngrok are started." >&2
+      exit_script 1
+    fi
+  fi
 
   info "Starting frontend and pgAdmin."
   if ! "${COMPOSE_CMD[@]}" up -d frontend pgadmin; then
@@ -215,7 +254,11 @@ compose_up() {
     exit_script 1
   fi
 
-  wait_http "Frontend" "http://localhost:3000" 900
+  if ! wait_http "Frontend" "http://localhost:3000" 900; then
+    show_startup_diagnostics frontend backend
+    echo "Frontend did not become reachable. Fix the error above before ngrok is started." >&2
+    exit_script 1
+  fi
 
   if [ -n "$ngrok_token" ] && [ -n "$ngrok_url" ]; then
     info "Starting optional ngrok tunnel."

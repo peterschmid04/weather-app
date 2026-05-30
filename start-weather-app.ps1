@@ -168,6 +168,64 @@ function Invoke-DockerCompose {
     }
 }
 
+function Invoke-DockerComposeBestEffort {
+    param([string[]]$Arguments)
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker compose @Arguments
+    }
+    catch {
+        Write-Info $_.Exception.Message
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
+function Show-StartupDiagnostics {
+    param([string[]]$Services)
+
+    Write-Info "Container status:"
+    Invoke-DockerComposeBestEffort -Arguments @("ps")
+
+    foreach ($service in $Services) {
+        Write-Info "Recent $service logs:"
+        Invoke-DockerComposeBestEffort -Arguments @("logs", "--tail=80", $service)
+    }
+
+    if ($Services -contains "db") {
+        Write-Host ""
+        Write-Host "Hinweis: Wenn ein altes PostgreSQL-Volume mit anderem Passwort vorhanden ist,"
+        Write-Host "wird es beim naechsten Start automatisch neu erstellt."
+    }
+}
+
+function Test-PostgresPasswordMismatch {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $logs = (& docker compose logs --tail=200 db backend 2>&1 | Out-String)
+    }
+    catch {
+        $logs = ""
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    return $logs -match "password authentication failed"
+}
+
+function Reset-StackVolumes {
+    Write-Info "PostgreSQL password mismatch detected. Recreating Docker volumes with the current .env password."
+    Write-Info "Running docker compose down -v. Local database data from this Compose stack will be reset."
+    Invoke-DockerCompose -Arguments @("down", "-v")
+    Write-Info "Starting database and backend again with fresh volumes."
+    Invoke-DockerCompose -Arguments @("up", "-d", "db", "backend")
+}
+
 function Test-Ports {
     $ports = @(3000, 5122, 5432, 5050)
     foreach ($port in $ports) {
@@ -195,7 +253,7 @@ function Wait-Http {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 5
             if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
                 Write-Info "$Name is reachable."
-                return
+                return $true
             }
         }
         catch {
@@ -210,6 +268,7 @@ function Wait-Http {
     }
 
     Write-Info "$Name was not reachable within $Seconds seconds. Check docker compose logs."
+    return $false
 }
 
 function Write-EnvFile {
@@ -270,11 +329,26 @@ function Start-Stack {
 
     Write-Info "Starting database and backend first."
     Invoke-DockerCompose -Arguments @("up", "-d", "db", "backend")
-    Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json" -Seconds 300
+    $backendReady = Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json" -Seconds 300
+    if (-not $backendReady) {
+        if (Test-PostgresPasswordMismatch) {
+            Reset-StackVolumes
+            $backendReady = Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json" -Seconds 300
+        }
+
+        if (-not $backendReady) {
+            Show-StartupDiagnostics -Services @("backend", "db")
+            throw "Backend did not become reachable. Fix the error above before frontend/ngrok are started."
+        }
+    }
 
     Write-Info "Starting frontend and pgAdmin."
     Invoke-DockerCompose -Arguments @("up", "-d", "frontend", "pgadmin")
-    Wait-Http -Name "Frontend" -Url "http://localhost:3000" -Seconds 900
+    $frontendReady = Wait-Http -Name "Frontend" -Url "http://localhost:3000" -Seconds 900
+    if (-not $frontendReady) {
+        Show-StartupDiagnostics -Services @("frontend", "backend")
+        throw "Frontend did not become reachable. Fix the error above before ngrok is started."
+    }
 
     if (-not [string]::IsNullOrWhiteSpace($ngrokToken) -and -not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
         Write-Info "Starting optional ngrok tunnel."
