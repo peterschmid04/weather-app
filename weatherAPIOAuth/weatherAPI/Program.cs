@@ -176,32 +176,6 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 
-// Demo-only response header. It has no business meaning and does not affect
-// any API contract or database write.
-var rnd = new Random();
-string[] funTxt =
-[
-    "“Partly cloudy, mostly coding”",
-    "fueled by coffee",
-    "100% chance of code",
-    "naming is a feature",
-    "bug or feature?",
-    "cache it if you can",
-    "High pressure, high uptime",
-    "Storm warning: merge conflicts",
-    "Sunny with a chance of deploys"
-];
-
-app.Use(async (context, next) =>
-{
-    context.Response.OnStarting(() =>
-    {
-        context.Response.Headers.Append("Fun-Text",funTxt[rnd.Next(0, funTxt.Length)]);
-        return Task.CompletedTask;
-    });
-    await next();
-});
-
 // GET /weather validates the city, calls OpenWeatherMap through the service
 // layer, checks Auth0 region permissions, then stores search history and logs.
 app.MapGet("/weather", async (
