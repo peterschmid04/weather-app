@@ -75,6 +75,7 @@ Zusatzoptionen fuer die Startdateien:
 ```sh
 bash ./start-weather-app.sh --validate-only
 bash ./start-weather-app.sh --with-ngrok
+bash ./start-weather-app.sh --no-pause
 ```
 
 PowerShell:
@@ -82,11 +83,16 @@ PowerShell:
 ```powershell
 .\start-weather-app.ps1 -ValidateOnly
 .\start-weather-app.ps1 -WithNgrok
+.\start-weather-app.ps1 -NoPause
 ```
 
 `--validate-only` beziehungsweise `-ValidateOnly` prüft die Werte und startet
 Docker danach nicht. Wenn bereits eine `.env` existiert, wird nur mit dieser
 Option geprüft; der normale Start läuft mit vorhandener `.env` einfach durch.
+
+Ohne Zusatzoption bleibt das Script-Fenster am Ende offen, damit Fehlermeldungen
+sichtbar bleiben. `--no-pause` beziehungsweise `-NoPause` ist nur für Tests oder
+automatisierte Starts gedacht.
 
 `--with-ngrok` beziehungsweise `-WithNgrok` ist vor allem für den ersten Lauf ohne
 vorhandene `.env` gedacht. Dann fragt das Script zusätzlich `NGROK_AUTHTOKEN` und

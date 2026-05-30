@@ -1,6 +1,7 @@
 param(
     [switch]$ValidateOnly,
-    [switch]$WithNgrok
+    [switch]$WithNgrok,
+    [switch]$NoPause
 )
 
 # Windows/PowerShell setup script.
@@ -25,6 +26,24 @@ $RequiredValues = @(
 function Write-Info {
     param([string]$Message)
     Write-Host "[weather-app] $Message"
+}
+
+function Stop-Script {
+    param([int]$Code = 0)
+
+    if (-not $NoPause) {
+        Write-Host ""
+        Read-Host "Fertig. Enter druecken zum Schliessen"
+    }
+
+    exit $Code
+}
+
+trap {
+    Write-Host ""
+    Write-Host "Das Skript wurde mit Fehler beendet:"
+    Write-Host $_.Exception.Message
+    Stop-Script 1
 }
 
 function Read-PlainValue {
@@ -331,16 +350,16 @@ if (Test-Path -LiteralPath $EnvPath) {
             foreach ($errorItem in $errors) {
                 Write-Host "- $errorItem"
             }
-            exit 1
+            Stop-Script 1
         }
 
         Write-Info ".env validation passed."
-        exit 0
+        Stop-Script 0
     }
 
     Write-Info ".env found. Starting Docker Compose without asking for values."
     Start-Stack
-    exit 0
+    Stop-Script 0
 }
 
 Write-Host ""
@@ -421,12 +440,12 @@ if ($errors.Count -gt 0) {
     foreach ($errorItem in $errors) {
         Write-Host "- $errorItem"
     }
-    exit 1
+    Stop-Script 1
 }
 
 if ($ValidateOnly) {
     Write-Info "Entered values are valid. .env was not written because -ValidateOnly was used."
-    exit 0
+    Stop-Script 0
 }
 
 Write-EnvFile -Values $values
@@ -434,3 +453,4 @@ Write-EnvFile -Values $values
 Write-Host ""
 Write-Info ".env written. Starting Docker Compose..."
 Start-Stack
+Stop-Script 0

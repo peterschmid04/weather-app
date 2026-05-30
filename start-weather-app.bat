@@ -4,10 +4,17 @@ rem This file keeps double-click/Command Prompt startup simple and UTF-8 safe.
 chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
+set "NO_PAUSE=0"
+set "VALIDATE_ONLY=0"
+
+for %%A in (%*) do (
+    if /I "%%~A"=="-NoPause" set "NO_PAUSE=1"
+    if /I "%%~A"=="-ValidateOnly" set "VALIDATE_ONLY=1"
+)
 
 if not exist "%~dp0start-weather-app.ps1" (
     echo start-weather-app.ps1 wurde nicht gefunden.
-    pause
+    if "%NO_PAUSE%"=="0" pause
     exit /b 1
 )
 
@@ -24,11 +31,12 @@ if not "%SCRIPT_EXIT%"=="0" (
     ) else (
         echo .env wurde nicht erstellt.
     )
-    pause
+    if "%NO_PAUSE%"=="0" pause
     exit /b %SCRIPT_EXIT%
 )
 
-if /I "%~1"=="-ValidateOnly" (
+if "%VALIDATE_ONLY%"=="1" (
+    if "%NO_PAUSE%"=="0" pause
     exit /b 0
 )
 
@@ -36,8 +44,9 @@ if not exist "%~dp0.env" (
     echo.
     echo Es wurde keine .env im Projektordner erstellt.
     echo Starte die Datei ohne -ValidateOnly und pruefe die Eingaben.
-    pause
+    if "%NO_PAUSE%"=="0" pause
     exit /b 1
 )
 
+if "%NO_PAUSE%"=="0" pause
 exit /b 0
