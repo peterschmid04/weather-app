@@ -15,8 +15,8 @@ public class ForecastService : IForecastService
     }
     
     /// <summary>
-    /// Groups forecast entries by local day, skips the current day and uses the
-    /// entry closest to noon for icon/description.
+    /// Groups forecast entries by local day, removes only today/past days and
+    /// uses the entry closest to noon for icon/description.
     /// </summary>
     public async Task<List<Forecast>?> GetForecast(double lat, double lon)
     {
@@ -25,6 +25,7 @@ public class ForecastService : IForecastService
 
         var timezone = TimeSpan.FromSeconds(forecastData.City?.Timezone ?? 0);
         var germanCulture = CultureInfo.GetCultureInfo("de-DE");
+        var localToday = DateTimeOffset.UtcNow.ToOffset(timezone).Date;
 
         var forecastList = forecastData.List
             .Select(item => new
@@ -34,7 +35,7 @@ public class ForecastService : IForecastService
             })
             .GroupBy(entry => entry.LocalTime.Date)
             .OrderBy(group => group.Key)
-            .Skip(1)
+            .Where(group => group.Key > localToday)
             .Take(6)
             .Select(group =>
             {

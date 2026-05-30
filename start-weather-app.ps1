@@ -187,7 +187,9 @@ function Wait-Http {
         [int]$Seconds = 120
     )
 
+    Write-Info "Waiting for $Name at $Url for up to $Seconds seconds."
     $deadline = (Get-Date).AddSeconds($Seconds)
+    $nextNotice = (Get-Date).AddSeconds(10)
     while ((Get-Date) -lt $deadline) {
         try {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 5
@@ -197,8 +199,14 @@ function Wait-Http {
             }
         }
         catch {
-            Start-Sleep -Seconds 3
         }
+
+        if ((Get-Date) -ge $nextNotice) {
+            Write-Info "$Name is still starting. Please wait..."
+            $nextNotice = (Get-Date).AddSeconds(10)
+        }
+
+        Start-Sleep -Seconds 3
     }
 
     Write-Info "$Name was not reachable within $Seconds seconds. Check docker compose logs."
@@ -262,11 +270,11 @@ function Start-Stack {
 
     Write-Info "Starting database and backend first."
     Invoke-DockerCompose -Arguments @("up", "-d", "db", "backend")
-    Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json"
+    Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json" -Seconds 300
 
     Write-Info "Starting frontend and pgAdmin."
     Invoke-DockerCompose -Arguments @("up", "-d", "frontend", "pgadmin")
-    Wait-Http -Name "Frontend" -Url "http://localhost:3000"
+    Wait-Http -Name "Frontend" -Url "http://localhost:3000" -Seconds 900
 
     if (-not [string]::IsNullOrWhiteSpace($ngrokToken) -and -not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
         Write-Info "Starting optional ngrok tunnel."
