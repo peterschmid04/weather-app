@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 
 using Moq;
+using System.Globalization;
 
 using weatherAPI.Models.External;
 using weatherAPI.Services;
@@ -101,7 +102,7 @@ public class WeatherApiServicesTests
         result.Should().HaveCount(1);
 
 
-        result[0].Day.Should().Be("Freitag");
+        result[0].Day.Should().Be(DateTimeOffset.UtcNow.AddDays(1).ToString("dddd", CultureInfo.GetCultureInfo("de-DE")));
         result[0].Description.Should().Be("overcast clouds");
         result[0].Icon.Should().Be("04d");
         result[0].Id.Should().Be(804);
@@ -110,6 +111,26 @@ public class WeatherApiServicesTests
 
         _apiMock.Verify(api => api.GetForecast(validLat, validLon), Times.Once);
         _apiMock.VerifyNoOtherCalls();
+    }
+
+    [TestMethod]
+    public async Task ForecastService_KeepsFirstFutureDay_WhenCurrentDayIsMissing()
+    {
+        var localMock = new Mock<IOpenWeatherApiService>();
+        localMock
+            .Setup(api => api.GetForecast(validLat, validLon))
+            .ReturnsAsync(GetForecastStartingTomorrowTestData());
+        var service = new ForecastService(localMock.Object);
+
+        var result = await service.GetForecast(validLat, validLon);
+
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+        result[0].Day.Should().Be(DateTimeOffset.UtcNow.AddDays(1).ToString("dddd", CultureInfo.GetCultureInfo("de-DE")));
+        result[0].Description.Should().Be("light rain");
+
+        localMock.Verify(api => api.GetForecast(validLat, validLon), Times.Once);
+        localMock.VerifyNoOtherCalls();
     }
 
     [TestMethod]
@@ -132,8 +153,11 @@ public class WeatherApiServicesTests
     private static ForecastApiResponse GetForecastApiResponseTestData(double expectedTempMin, double expectedTempMax,
         string expectedDescription)
     {
-        // Two entries are enough to verify that the service skips the current
-        // day and maps the next forecast day into a frontend DTO.
+        // Two entries are enough to verify that the service removes only the
+        // current day and keeps the first available future forecast day.
+        var today = DateTimeOffset.UtcNow.Date;
+        var tomorrowNoon = today.AddDays(1).AddHours(12);
+
         var expectedForecast = new ForecastApiResponse
         {
             City = new ForecastCity { Timezone = 0 },
@@ -141,14 +165,14 @@ public class WeatherApiServicesTests
             [
                 new ForecastDay
                 {
-                    Dt = new DateTimeOffset(2025, 8, 21, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    Dt = new DateTimeOffset(today, TimeSpan.Zero).ToUnixTimeSeconds(),
                     Main = new ForecastMain { Temp = 15.0, TempMin = 10.0, TempMax = 20.0 },
                     Weather = [new WeatherInfo { Id = 800, Description = "clear sky", Icon = "01d" }]
                 },
 
                 new ForecastDay
                 {
-                    Dt = new DateTimeOffset(2025, 8, 22, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    Dt = new DateTimeOffset(tomorrowNoon, TimeSpan.Zero).ToUnixTimeSeconds(),
                     Main = new ForecastMain
                     {
                         Temp = 18.0,
@@ -168,6 +192,25 @@ public class WeatherApiServicesTests
             ]
         };
         return expectedForecast;
+    }
+
+    private static ForecastApiResponse GetForecastStartingTomorrowTestData()
+    {
+        var tomorrowNoon = DateTimeOffset.UtcNow.Date.AddDays(1).AddHours(12);
+
+        return new ForecastApiResponse
+        {
+            City = new ForecastCity { Timezone = 0 },
+            List =
+            [
+                new ForecastDay
+                {
+                    Dt = new DateTimeOffset(tomorrowNoon, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    Main = new ForecastMain { Temp = 14.0, TempMin = 8.5, TempMax = 19.0 },
+                    Weather = [new WeatherInfo { Id = 500, Description = "light rain", Icon = "10d" }]
+                }
+            ]
+        };
     }
 
     private static OpenWeatherResponse GetOpenWeatherResponseTestData()

@@ -168,8 +168,11 @@ check_ports() {
 wait_http() {
   local name="$1"
   local url="$2"
-  local deadline=$((SECONDS + 120))
+  local wait_seconds="${3:-120}"
+  local deadline=$((SECONDS + wait_seconds))
+  local next_notice=$((SECONDS + 10))
 
+  info "Waiting for $name at $url for up to $wait_seconds seconds."
   while [ "$SECONDS" -lt "$deadline" ]; do
     if command -v curl >/dev/null 2>&1 && curl -fsS "$url" >/dev/null 2>&1; then
       info "$name is reachable."
@@ -181,10 +184,15 @@ wait_http() {
       return
     fi
 
+    if [ "$SECONDS" -ge "$next_notice" ]; then
+      info "$name is still starting. Please wait..."
+      next_notice=$((SECONDS + 10))
+    fi
+
     sleep 3
   done
 
-  info "$name was not reachable within 120 seconds. Check docker compose logs."
+  info "$name was not reachable within $wait_seconds seconds. Check docker compose logs."
 }
 
 compose_up() {
@@ -199,7 +207,7 @@ compose_up() {
     exit_script 1
   fi
 
-  wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json"
+  wait_http "Backend" "http://localhost:5122/swagger/v1/swagger.json" 300
 
   info "Starting frontend and pgAdmin."
   if ! "${COMPOSE_CMD[@]}" up -d frontend pgadmin; then
@@ -207,7 +215,7 @@ compose_up() {
     exit_script 1
   fi
 
-  wait_http "Frontend" "http://localhost:3000"
+  wait_http "Frontend" "http://localhost:3000" 900
 
   if [ -n "$ngrok_token" ] && [ -n "$ngrok_url" ]; then
     info "Starting optional ngrok tunnel."
