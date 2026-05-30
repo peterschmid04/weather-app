@@ -30,11 +30,6 @@ for arg in "$@"; do
   esac
 done
 
-restore_tty() {
-  stty echo 2>/dev/null || true
-}
-trap restore_tty EXIT INT TERM
-
 info() {
   printf '[weather-app] %s\n' "$1"
 }
@@ -56,29 +51,6 @@ prompt_value() {
     if [ -z "$value" ]; then
       value="$default_value"
     fi
-
-    if [ "$required" != "true" ] || [ -n "$value" ]; then
-      printf "%s" "$value"
-      return
-    fi
-
-    echo "This value is required." >&2
-  done
-}
-
-prompt_secret() {
-  local label="$1"
-  local required="${2:-true}"
-  local value
-
-  while :; do
-    printf "%s: " "$label" >&2
-    if [ -t 0 ]; then
-      stty -echo 2>/dev/null || true
-    fi
-    IFS= read -r value
-    restore_tty
-    printf "\n" >&2
 
     if [ "$required" != "true" ] || [ -n "$value" ]; then
       printf "%s" "$value"
@@ -371,7 +343,7 @@ AUTH0_CONNECTION_APPLE="apple"
 AUTH0_CONNECTION_FACEBOOK="facebook"
 AUTH0_CONNECTION_GITHUB="github"
 
-OPENWEATHERMAP_API_KEY="$(prompt_secret "OPENWEATHERMAP_API_KEY" "true")"
+OPENWEATHERMAP_API_KEY="$(prompt_value "OPENWEATHERMAP_API_KEY" "" "true")"
 LOGS="false"
 LOG_DIRECTORY="/workspace/logs"
 COMPOSE_PROFILES=""
@@ -379,11 +351,11 @@ NGROK_AUTHTOKEN=""
 NGROK_URL=""
 
 if [ "$WITH_NGROK" = "true" ]; then
-  NGROK_AUTHTOKEN="$(prompt_secret "NGROK_AUTHTOKEN" "true")"
+  NGROK_AUTHTOKEN="$(prompt_value "NGROK_AUTHTOKEN" "" "true")"
   NGROK_URL="$(prompt_value "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app" "" "true")"
   COMPOSE_PROFILES="ngrok"
 else
-  NGROK_AUTHTOKEN="$(prompt_secret "NGROK_AUTHTOKEN optional, press Enter to skip" "false")"
+  NGROK_AUTHTOKEN="$(prompt_value "NGROK_AUTHTOKEN optional, press Enter to skip" "" "false")"
   if [ -n "$NGROK_AUTHTOKEN" ]; then
     NGROK_URL="$(prompt_value "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app" "" "true")"
     COMPOSE_PROFILES="ngrok"

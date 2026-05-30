@@ -49,36 +49,6 @@ function Read-PlainValue {
     }
 }
 
-function ConvertTo-PlainText {
-    param([System.Security.SecureString]$SecureValue)
-
-    $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureValue)
-    try {
-        [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-    }
-    finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
-    }
-}
-
-function Read-SecretValue {
-    param(
-        [string]$Label,
-        [bool]$Required = $true
-    )
-
-    while ($true) {
-        $secure = Read-Host $Label -AsSecureString
-        $value = ConvertTo-PlainText $secure
-
-        if (-not $Required -or -not [string]::IsNullOrWhiteSpace($value)) {
-            return $value.Trim()
-        }
-
-        Write-Host "This value is required."
-    }
-}
-
 function New-SafePassword {
     $bytes = New-Object byte[] 24
     [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
@@ -397,7 +367,7 @@ $auth0Apple = "apple"
 $auth0Facebook = "facebook"
 $auth0GitHub = "github"
 
-$openWeatherKey = Read-SecretValue "OPENWEATHERMAP_API_KEY"
+$openWeatherKey = Read-PlainValue "OPENWEATHERMAP_API_KEY"
 $logs = "false"
 $logDirectory = "/workspace/logs"
 $composeProfiles = ""
@@ -405,12 +375,12 @@ $ngrokAuthtoken = ""
 $ngrokUrl = ""
 
 if ($WithNgrok) {
-    $ngrokAuthtoken = Read-SecretValue "NGROK_AUTHTOKEN"
+    $ngrokAuthtoken = Read-PlainValue "NGROK_AUTHTOKEN"
     $ngrokUrl = Read-PlainValue "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app"
     $composeProfiles = "ngrok"
 }
 else {
-    $ngrokAuthtoken = Read-SecretValue "NGROK_AUTHTOKEN optional, press Enter to skip" $false
+    $ngrokAuthtoken = Read-PlainValue "NGROK_AUTHTOKEN optional, press Enter to skip" "" $false
     if (-not [string]::IsNullOrWhiteSpace($ngrokAuthtoken)) {
         $ngrokUrl = Read-PlainValue "NGROK_URL, for example https://your-ngrok-url.ngrok-free.app"
         $composeProfiles = "ngrok"
