@@ -535,6 +535,8 @@ docker compose up -d
 
 Das löscht lokale Datenbankdaten. Nur machen, wenn die lokalen Testdaten weg dürfen.
 
+Die Startdateien erkennen beim Backend-Start einen PostgreSQL-Fehler wie `password authentication failed` und setzen das lokale Docker-Volume automatisch mit `docker compose down -v` zurück. Danach wird die Datenbank mit dem aktuellen `POSTGRES_PASSWORD` aus `.env` neu erstellt, bevor Frontend, pgAdmin und optional ngrok gestartet werden.
+
 ## Optionale ausführliche Backend-Logs
 
 Standard:
