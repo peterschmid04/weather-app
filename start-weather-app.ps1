@@ -252,15 +252,25 @@ function Start-Stack {
     $envValues = Read-DotEnv -Path $EnvPath
     $ngrokToken = Get-EnvValue $envValues "NGROK_AUTHTOKEN"
     $ngrokUrl = Get-EnvValue $envValues "NGROK_URL"
-    if (-not [string]::IsNullOrWhiteSpace($ngrokToken) -and -not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
-        Invoke-DockerCompose -Arguments @("--profile", "ngrok", "up", "-d")
-    }
-    else {
-        Invoke-DockerCompose -Arguments @("up", "-d")
-    }
 
-    Wait-Http -Name "Frontend" -Url "http://localhost:3000"
+    Write-Info "Starting database and backend first."
+    Invoke-DockerCompose -Arguments @("up", "-d", "db", "backend")
     Wait-Http -Name "Backend" -Url "http://localhost:5122/swagger/v1/swagger.json"
+
+    Write-Info "Starting frontend and pgAdmin."
+    Invoke-DockerCompose -Arguments @("up", "-d", "frontend", "pgadmin")
+    Wait-Http -Name "Frontend" -Url "http://localhost:3000"
+
+    if (-not [string]::IsNullOrWhiteSpace($ngrokToken) -and -not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
+        Write-Info "Starting optional ngrok tunnel."
+        try {
+            Invoke-DockerCompose -Arguments @("--profile", "ngrok", "up", "-d", "ngrok")
+        }
+        catch {
+            Write-Info "ngrok could not be started. The local app still runs on http://localhost:3000."
+            Write-Info $_.Exception.Message
+        }
+    }
 }
 
 if (Test-Path -LiteralPath $EnvPath) {
